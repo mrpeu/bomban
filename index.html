@@ -1,10 +1,52 @@
 
+
 <!doctype html>
 <html>
-<head><title>experiments</title></head>
-<body style="background-color: #444">
+<head><title>experiments</title>
+    <style type="text/css">
+        body
+        {
+            background-color: #444;
+        }
 
-    <canvas id="c" style="width: 480px; height: 480px; position: absolute; left: 50%; top: 33%; margin-left:-240px; margin-top:-155px; border: 0px solid black;"></canvas>
+        #canvas-container
+        {
+            width: 500px;
+            height: 500px;
+            position: absolute;
+            left: 50%;
+            top: 2em;
+            margin-left: -250px;
+
+            border: 2px solid #111;
+            background-color: #eee;
+        }
+
+        #canvas-container:before
+        {
+            content: "AFTERCONTENTAFTERCONTENT";
+            position: absolute;
+            width: 707px;
+            height: 707px;
+            left: 147px;
+            top: 147px;
+            -webkit-transform: rotate(45deg);
+            background: linear-gradient(to right, #111, #444);
+        }
+
+        #canvas
+        {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+    </div>
     
     <!-- Tween js  - http://github.com/sole/tween.js -->
     <script type="text/javascript">
@@ -142,7 +184,7 @@
 
             };
 
-            this.setDuration = function( newDuration ) {
+            this.setDuration = function ( newDuration ) {
                 _duration = newDuration || _duration;
 
                 return this;
