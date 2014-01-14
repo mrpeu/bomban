@@ -25,6 +25,16 @@ Object.extend = function ( obj, extension ) {
   return obj;
 };
 
+Array.prototype.clean = function ( deleteValue ) {
+  for ( var i = 0; i < this.length; i++ ) {
+    if ( this[i] == deleteValue ) {
+      this.splice( i, 1 );
+      i--;
+    }
+  }
+  return this;
+};
+
 
 //--------------
 // global variables (pleonasm for "to clean up")
@@ -149,13 +159,6 @@ Game.prototype.update = function () {
     allPlayers[i].update( ctx );
   }
 
-  //--------
-  // props (Fire)
-  var allProps = this.props;
-  for ( var i = 0; i < allProps.length; i++ ) {
-    allProps[i].update( ctx );
-  }
-
 };
 
 Game.prototype.render = function ( ctx ) {
@@ -176,13 +179,6 @@ Game.prototype.render = function ( ctx ) {
   var allPlayers = this.players;
   for ( var i = 0; i < allPlayers.length; i++ ) {
     allPlayers[i].render( ctx );
-  }
-
-  //--------
-  // props (Fire)
-  var allProps = this.props;
-  for ( var i = 0; i < allProps.length; i++ ) {
-    allProps[i].render( ctx );
   }
 };
 
@@ -291,14 +287,7 @@ Block.RenderFns = {
     //ctx.lineWidth = 1;
 
     var x = this.x, y = this.y, size = this.size;
-    ctx.beginPath();
-    ctx.moveTo( x, y );
-    ctx.lineTo( x + size, y );
-    ctx.lineTo( x + size, y + size );
-    ctx.lineTo( x, y + size );
-    ctx.lineTo( x, y );
-    ctx.fill();
-    //ctx.stroke();
+    ctx.fillRect( x, y, size, size );
 
     if ( DEBUG ) {
       ctx.fillStyle = "#d0d0d0";
@@ -316,14 +305,8 @@ Block.RenderFns = {
     ctx.strokeStyle = "#fff";
 
     var x = this.x, y = this.y, size = this.size;
-    ctx.beginPath();
-    ctx.moveTo( x, y );
-    ctx.lineTo( x + size, y );
-    ctx.lineTo( x + size, y + size );
-    ctx.lineTo( x, y + size );
-    ctx.lineTo( x, y );
-    ctx.fill();
-    ctx.stroke();
+    ctx.fillRect( x, y, size, size );
+    ctx.strokeRect( x, y, size, size );
 
     ctx.fillStyle = "#fff";
     ctx.fillText( "ERROR", this.x + 3, this.y + 12 );
@@ -466,28 +449,31 @@ Input.prototype.update = function ( time ) {
 
 Input.prototype.onKeyDown = function ( e ) {
   e = e || window.event;
-  e.stopPropagation ? e.stopPropagation() : ( e.cancelBubble = true );
-  e.preventDefault();
 
   switch ( e.keyCode ) {
     case 37: // left
       this.game.player.moveToward( DIRECTION[0] );
+      e.preventDefault();
       break;
 
     case 38: // top
       this.game.player.moveToward( DIRECTION[1] );
+      e.preventDefault();
       break;
 
     case 39: // right
       this.game.player.moveToward( DIRECTION[2] );
+      e.preventDefault();
       break;
 
     case 40: // bottom
       this.game.player.moveToward( DIRECTION[3] );
+      e.preventDefault();
       break;
 
     case 32: // spacebar
       this.game.player.action();
+      e.preventDefault();
       break;
 
     default:
@@ -520,6 +506,7 @@ Player.prototype._tweenMove = [];
 Player.prototype.direction = "ERROR";
 Player.prototype.color = "#fff";
 Player.prototype.bombs = [];
+Player.prototype.isAlive = true;
 
 Player.all = [];
 
@@ -529,18 +516,21 @@ Player.prototype.init = function () {
 };
 
 Player.prototype.update = function ( time ) {
+
+  if ( this.health <= 0 ) this.isAlive = false;
+
   this.bombs.forEach( function ( b ) {
     b.update( time );
+    //this.bombs.splice( this.player.bombs.indexOf( this ), 1 );
   } );
 };
 
 Player.prototype.render = function ( ctx ) {
 
-  if ( this.health <= 0 ) return this.renderDead( ctx );
-
   var x = this.x, y = this.y, s = this.size, hs = this.size / 2;
 
   ctx.save();
+  if ( !this.isAlive ) ctx.globalAlpha = 0.75;
 
   ctx.translate( x, y );
 
@@ -551,54 +541,24 @@ Player.prototype.render = function ( ctx ) {
     case "south": default: break;
   }
 
-  //ctx.lineWidth = 1;
-  //ctx.strokeStyle = this.color;
-  ctx.fillStyle = this.color;
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = ctx.fillStyle = this.color;
 
   ctx.beginPath();
   ctx.moveTo( -hs, -hs );
   ctx.lineTo( +hs, -hs );
   ctx.lineTo( 0, +hs );
   ctx.lineTo( -hs, -hs );
-  ctx.fill();
-  //ctx.stroke();
+  ctx[this.isAlive ? "fill" : "stroke"]();
 
   ctx.restore();
 
-  this.bombs.forEach( function ( b ) { b.render(); } );
-};
 
-Player.prototype.renderDead = function ( ctx ) {
-
-  var x = this.x, y = this.y, s = this.size / 2, hs = this.size / 2;
-
-  var gAlpha = ctx.globalAlpha;
-  ctx.save();
-  ctx.globalAlpha = 0.5;
-  ctx.translate( x, y );
-
-  switch ( this.direction ) {
-    case "west": ctx.rotate( deg2rad * 90 ); break;
-    case "east": ctx.rotate( deg2rad * -90 ); break;
-    case "north": ctx.rotate( deg2rad * 180 ); break;
-    case "south": default: break;
-  }
-
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = this.color;
-  //ctx.fillStyle = "#222222";
-
-  ctx.beginPath();
-  ctx.moveTo( -hs, -hs );
-  ctx.lineTo( +hs, -hs );
-  ctx.lineTo( 0, +hs );
-  ctx.lineTo( -hs, -hs );
-  //ctx.fill();
-  ctx.stroke();
-
-  ctx.restore();
-
-  this.bombs.forEach( function ( b ) { b.render(); } );
+  // render bombs
+  //for ( var i = this.bombs.length - 1, b = this.bombs[i]; i >= 0; i-- ) {
+  //  b.render( ctx );
+  //}
+  this.bombs.forEach( function ( b ) { b.render( ctx ); } );
 };
 
 Player.prototype.canMoveForward = function () {
@@ -713,12 +673,14 @@ Bomb.prototype.x = 0;
 Bomb.prototype.y = 0;
 Bomb.prototype.size = 10;
 Bomb.prototype.direction = DIRECTION[1];
-Bomb.prototype.color = "#ff0000";
+Bomb.prototype.color = "#111";
 Bomb.prototype.colorBorder = "#000000";
 Bomb.prototype.player = undefined;
 Bomb.prototype.power = 3; // how far(nb blocks) can it blow up
 Bomb.prototype.timeout = 2000;
 Bomb.prototype.isAlive = true;
+
+Bomb.prototype.fires = [];
 
 Bomb.all = [];
 
@@ -738,7 +700,7 @@ Bomb.prototype.init = function () {
 
 Bomb.prototype.boom = function () {
   this.isAlive = false;
-  this.player.bombs.splice( this.player.bombs.indexOf( this ), 1 );
+
   var thisBlock = this.game.getBlockAt( this.x, this.y );
   var hbs = game.blockSize / 2;
   var cursorBlock = thisBlock, done = false, direction;
@@ -752,12 +714,14 @@ Bomb.prototype.boom = function () {
     } );
   };
 
-  new Fire( this.game, {
-    x: cursorBlock.x + hbs,
-    y: cursorBlock.y + hbs,
-    power: this.power,
-    size: hbs
-  } );
+  this.fires.push(
+    new BB.Fire( this.game, {
+      x: cursorBlock.x + hbs,
+      y: cursorBlock.y + hbs,
+      power: this.power,
+      size: hbs
+    } )
+  );
 
   killPlayer( cursorBlock );
 
@@ -777,12 +741,14 @@ Bomb.prototype.boom = function () {
 
         cursorBlock.empty();
 
-        new Fire( this.game, {
-          x: cursorBlock.x + hbs,
-          y: cursorBlock.y + hbs,
-          power: this.power - i,
-          size: hbs
-        } );
+        this.fires.push(
+          new BB.Fire( this.game, {
+            x: cursorBlock.x + hbs,
+            y: cursorBlock.y + hbs,
+            power: this.power - i,
+            size: hbs
+          } )
+        );
       }
       else {
         done = true;
@@ -793,35 +759,51 @@ Bomb.prototype.boom = function () {
 };
 
 Bomb.prototype.update = function ( time ) {
-  var ellapsedTime = Date.now() - this.startTick;
-  this.lastHue = 70 - ( 70 / this.timeout ) * ellapsedTime;
-  this.color = getHSLA( this.lastHue, 90, 50, 40 );//+this.lastHue );
-  this.colorBorder = ( ellapsedTime / 250 ) % 2 > 1 ? "#f40" : "#fa0";
 };
 
-Bomb.prototype.render = function ( time ) {
+Bomb.prototype.render = function ( ctx ) {
 
-  if ( !this.isAlive ) return;
+  if ( this.isAlive ) {
+    var rotation = -0.8;
 
-  var s = this.size, x = this.x, y = this.y;
+    ctx.save();
+    ctx.translate( this.x, this.y );
+    ctx.rotate( rotation );
 
-  ctx.save();
+    var s = this.size, x = 0, y = 0;
 
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = this.colorBorder || "#000000";
-  ctx.fillStyle = this.color;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = ( Date.now() / 300 % 2 > 1 ) ? "#f40" : "#fa0";
+    ctx.fillStyle = this.color;
 
-  ctx.beginPath();
-  ctx.arc( x, y, s, 0, twoPI );
-  //switch( this.direction ) {
-  //    default:
-  //    case "north": ctx.arc( x, this.y, s / 5, 0, twoPI ); break;
-  //    case "west": ctx.arc( -this.x, y, s / 5, 0, twoPI ); break;
-  //    case "east": ctx.arc( this.x, y, s / 5, 0, twoPI ); break;
-  //    case "south": ctx.arc( x, -this.y, s / 5, 0, twoPI ); break;
-  //}
-  ctx.stroke();
-  ctx.fill();
+    ctx.beginPath();
+    ctx.arc( x, y, this.size, 0, twoPI );
+    ctx.fillRect( x - s / 4, y - s - s / 3, s / 2, s / 2 );
+    ctx.fill();
+
+    ctx.beginPath();
+    var arcStart = -Math.PI / 2 + 0.3,
+        arcEnd = twoPI - 0.6;
+    ctx.arc( x, y, s, arcStart, (arcEnd / this.timeout ) * ( Date.now() - this.startTick ) + arcStart );
+    ctx.stroke();
+
+    ctx.restore();
+
+  }
+
+  if ( this.fires.length > 0 ) {
+    // render fires
+    var f;
+    for ( var i = this.fires.length - 1; i >= 0; i-- ) {
+      f = this.fires[i];
+      if ( f.isAlive ) {
+        f.render( ctx );
+      } else {
+        f = undefined;
+      }
+    }
+    this.fires.clean();
+  }
 };
 
 //============
@@ -829,30 +811,101 @@ Bomb.prototype.render = function ( time ) {
 
 
 
-//============
-// Fire
-//============
+//############
+// BeamBoom
+//############
+var BB = BB || {};
 
-var Fire = function ( game, opt ) {
+BB.extend = function ( obj, source ) {
+
+  // based on: https://github.com/mrdoob/three.js/blob/master/src/Three.js
+  if ( Object.keys ) {
+
+    var keys = Object.keys( source );
+
+    for ( var i = 0, il = keys.length; i < il; i++ ) {
+
+      var prop = keys[i];
+      Object.defineProperty( obj, prop, Object.getOwnPropertyDescriptor( source, prop ) );
+
+    }
+
+  } else {
+
+    var safeHasOwnProperty = {}.hasOwnProperty;
+
+    for ( var prop in source ) {
+
+      if ( safeHasOwnProperty.call( source, prop ) ) {
+
+        obj[prop] = source[prop];
+
+      }
+
+    }
+
+  }
+
+  return obj;
+
+};
+
+BB.DIRECTIONS = ["none", "west", "north", "east", "south"];
+//############
+
+
+//############
+// Prop
+//############
+
+BB.Prop = function ( game, opt ) {
+
   this.game = game;
   Object.extend( this, opt );
-  this.init();
+
+  this.id = BB.Prop.prototype.idCount++;
+}
+
+BB.Prop.prototype.id = 0;
+BB.Prop.prototype.idCount = 0;
+BB.Prop.prototype.x = 0;
+BB.Prop.prototype.y = 0;
+BB.Prop.prototype.size = 16;
+BB.Prop.prototype.direction = BB.DIRECTIONS[0];
+BB.Prop.prototype.color = "#000000";
+
+BB.Prop.prototype.constructor = BB.Prop;
+
+BB.Prop.prototype.render = function ( ctx ) {
+
+  ctx.fillStyle = "#ff0000";
+  ctx.strokeStyle = "#fff";
+
+  var x = this.x, y = this.y, size = this.size;
+  ctx.beginPath();
+  ctx.moveTo( x, y );
+  ctx.lineTo( x + size, y );
+  ctx.lineTo( x + size, y + size );
+  ctx.lineTo( x, y + size );
+  ctx.lineTo( x, y );
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#fff";
+  ctx.fillText( "ERROR", this.x + 3, this.y + 12 );
+
 };
 
-Fire.prototype.x = 0;
-Fire.prototype.y = 0;
-Fire.prototype.size = 16;
-Fire.prototype.power = 10;
-Fire.prototype.direction = DIRECTION[1];
-Fire.prototype.color = "#ff0000";
-Fire.prototype.timeout = 1000;
-Fire.prototype.isAlive = true;
+//############
 
-Fire.prototype.init = function () {
-  this.id = this.game.props.length;
-  this.game.props.push( this );
 
-  //this.startTick = Date.now();
+//############
+// Fire
+//############
+
+BB.Fire = function ( game, opt ) {
+
+  BB.Prop.apply( this, arguments );
 
   var sizeGoal = this.size;
   this.size /= 5;
@@ -868,13 +921,14 @@ Fire.prototype.init = function () {
   ;
 };
 
-Fire.prototype.update = function ( time ) {
-  if ( !this.isAlive ) {
-    this.game.props.splice( this.game.props.indexOf( this ) );
-  }
-};
+BB.Fire.prototype = Object.create( BB.Prop );
 
-Fire.prototype.render = function ( ctx ) {
+BB.Fire.prototype.color = "#dd0000";
+BB.Fire.prototype.power = 10;
+BB.Fire.prototype.timeout = 1000;
+BB.Fire.prototype.isAlive = true;
+
+BB.Fire.prototype.render = function ( ctx ) {
 
   var s = this.size,// - ( Date.now() - this.startTick ) * ( ( this.size - 3 ) / this.timeout ),
       x = this.x,
@@ -886,8 +940,7 @@ Fire.prototype.render = function ( ctx ) {
   ctx.arc( x, y, s, 0, twoPI );
   ctx.fill();
 };
-
-//============
+//############
 
 
 
@@ -903,7 +956,7 @@ loop = function () {
 
   game.update();
 
-  ctx.clearRect( 0, 0, canvasEl.width, canvasEl.height );
+  //ctx.clearRect( 0, 0, canvasEl.width, canvasEl.height );
 
   game.render( ctx );
 
