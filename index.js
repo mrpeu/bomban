@@ -466,34 +466,37 @@ Input.prototype.update = function ( time ) {
 
 Input.prototype.onKeyDown = function ( e ) {
   e = e || window.event;
-  e.stopPropagation ? e.stopPropagation() : ( e.cancelBubble = true );
-  e.preventDefault();
 
-  switch ( e.keyCode ) {
-    case 37: // left
-      this.game.player.moveToward( DIRECTION[0] );
-      break;
+    switch ( e.keyCode ) {
+        case 37: // left
+            this.game.player.moveToward( DIRECTION[0] );
+            e.preventDefault();
+            break;
 
-    case 38: // top
-      this.game.player.moveToward( DIRECTION[1] );
-      break;
+        case 38: // top
+            this.game.player.moveToward( DIRECTION[1] );
+            e.preventDefault();
+            break;
 
-    case 39: // right
-      this.game.player.moveToward( DIRECTION[2] );
-      break;
+        case 39: // right
+            this.game.player.moveToward( DIRECTION[2] );
+            e.preventDefault();
+            break;
 
-    case 40: // bottom
-      this.game.player.moveToward( DIRECTION[3] );
-      break;
+        case 40: // bottom
+            this.game.player.moveToward( DIRECTION[3] );
+            e.preventDefault();
+            break;
 
-    case 32: // spacebar
-      this.game.player.action();
-      break;
+        case 32: // spacebar
+            this.game.player.action();
+            e.preventDefault();
+            break;
 
-    default:
-      //console.info(e.keyCode); 
-      break;
-  }
+        default:
+            //console.info(e.keyCode); 
+            break;
+    }
 };
 //============
 

@@ -1,41 +1,51 @@
-
-
 <!doctype html>
 <html>
-<head><title>experiments</title>
+<head>
+    <title>experiments</title>
     <style type="text/css">
-        body
-        {
+        body {
             background-color: #444;
         }
 
-        #canvas-container
-        {
+        #canvas-container {
             width: 500px;
             height: 500px;
             position: absolute;
             left: 50%;
             top: 2em;
             margin-left: -250px;
-
-            border: 2px solid #111;
             background-color: #eee;
+            padding: 2px;
         }
 
-        #canvas-container:before
-        {
-            content: "AFTERCONTENTAFTERCONTENT";
+        #canvas-container:after {
+            border: .15em solid #222;
+            box-shadow: rgba(0,0,0,0.4) .15em .15em inset;
+            content: "";
+            width: 500px;
+            height: 500px;
+            left: 0;
+            top: 0;
+            position: absolute;
+        }
+
+        #canvas-shadow {
             position: absolute;
             width: 707px;
             height: 707px;
             left: 147px;
             top: 147px;
             -webkit-transform: rotate(45deg);
-            background: linear-gradient(to right, #111, #444);
+            background: linear-gradient(to right, #333, #444);
         }
-
-        #canvas
-        {
+        /*
+        #canvas-shadow:before {
+            content: "Bomban";
+            position: absolute;
+            bottom: 0; left: 1em;
+        }
+        */
+        #canvas {
             position: relative;
             width: 100%;
             height: 100%;
@@ -45,9 +55,10 @@
 <body>
 
     <div id="canvas-container">
+        <div id="canvas-shadow"></div>
         <canvas id="canvas"></canvas>
     </div>
-    
+
     <!-- Tween js  - http://github.com/sole/tween.js -->
     <script type="text/javascript">
         /**
@@ -65,7 +76,7 @@
  */
 
         // Date.now shim for (ahem) Internet Explo(d|r)er
-        if ( Date.now === undefined ) {
+        if( Date.now === undefined ) {
 
             Date.now = function () {
 
@@ -105,7 +116,7 @@
 
                     var i = _tweens.indexOf( tween );
 
-                    if ( i !== -1 ) {
+                    if( i !== -1 ) {
 
                         _tweens.splice( i, 1 );
 
@@ -115,15 +126,15 @@
 
                 update: function ( time ) {
 
-                    if ( _tweens.length === 0 ) return false;
+                    if( _tweens.length === 0 ) return false;
 
                     var i = 0;
 
                     time = time !== undefined ? time : ( typeof window !== 'undefined' && window.performance !== undefined && window.performance.now !== undefined ? window.performance.now() : Date.now() );
 
-                    while ( i < _tweens.length ) {
+                    while( i < _tweens.length ) {
 
-                        if ( _tweens[i].update( time ) ) {
+                        if( _tweens[i].update( time ) ) {
 
                             i++;
 
@@ -164,7 +175,7 @@
             var _onCompleteCallback = null;
 
             // Set all starting values present on the target object
-            for ( var field in object ) {
+            for( var field in object ) {
 
                 _valuesStart[field] = parseFloat( object[field], 10 );
 
@@ -172,7 +183,7 @@
 
             this.to = function ( properties, duration ) {
 
-                if ( duration !== undefined ) {
+                if( duration !== undefined ) {
 
                     _duration = duration;
 
@@ -201,12 +212,12 @@
                 _startTime = time !== undefined ? time : ( typeof window !== 'undefined' && window.performance !== undefined && window.performance.now !== undefined ? window.performance.now() : Date.now() );
                 _startTime += _delayTime;
 
-                for ( var property in _valuesEnd ) {
+                for( var property in _valuesEnd ) {
 
                     // check if an Array was provided as property value
-                    if ( _valuesEnd[property] instanceof Array ) {
+                    if( _valuesEnd[property] instanceof Array ) {
 
-                        if ( _valuesEnd[property].length === 0 ) {
+                        if( _valuesEnd[property].length === 0 ) {
 
                             continue;
 
@@ -219,7 +230,7 @@
 
                     _valuesStart[property] = _object[property];
 
-                    if ( ( _valuesStart[property] instanceof Array ) === false ) {
+                    if( ( _valuesStart[property] instanceof Array ) === false ) {
                         _valuesStart[property] *= 1.0; // Ensures we're using numbers, not strings
                     }
 
@@ -233,7 +244,7 @@
 
             this.stop = function () {
 
-                if ( !_isPlaying ) {
+                if( !_isPlaying ) {
                     return this;
                 }
 
@@ -246,7 +257,7 @@
 
             this.stopChainedTweens = function () {
 
-                for ( var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++ ) {
+                for( var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++ ) {
 
                     _chainedTweens[i].stop();
 
@@ -322,15 +333,15 @@
 
                 var property;
 
-                if ( time < _startTime ) {
+                if( time < _startTime ) {
 
                     return true;
 
                 }
 
-                if ( _onStartCallbackFired === false ) {
+                if( _onStartCallbackFired === false ) {
 
-                    if ( _onStartCallback !== null ) {
+                    if( _onStartCallback !== null ) {
 
                         _onStartCallback.call( _object );
 
@@ -345,24 +356,24 @@
 
                 var value = _easingFunction( elapsed );
 
-                for ( property in _valuesEnd ) {
+                for( property in _valuesEnd ) {
 
                     var start = _valuesStart[property] || 0;
                     var end = _valuesEnd[property];
 
-                    if ( end instanceof Array ) {
+                    if( end instanceof Array ) {
 
                         _object[property] = _interpolationFunction( end, value );
 
                     } else {
 
                         // Parses relative end values with start as base (e.g.: +10, -3)
-                        if ( typeof ( end ) === "string" ) {
+                        if( typeof ( end ) === "string" ) {
                             end = start + parseFloat( end, 10 );
                         }
 
                         // protect against non numeric properties.
-                        if ( typeof ( end ) === "number" ) {
+                        if( typeof ( end ) === "number" ) {
                             _object[property] = start + ( end - start ) * value;
                         }
 
@@ -370,28 +381,28 @@
 
                 }
 
-                if ( _onUpdateCallback !== null ) {
+                if( _onUpdateCallback !== null ) {
 
                     _onUpdateCallback.call( _object, value );
 
                 }
 
-                if ( elapsed == 1 ) {
+                if( elapsed == 1 ) {
 
-                    if ( _repeat > 0 ) {
+                    if( _repeat > 0 ) {
 
-                        if ( isFinite( _repeat ) ) {
+                        if( isFinite( _repeat ) ) {
                             _repeat--;
                         }
 
                         // reassign starting values, restart by making startTime = now
-                        for ( property in _valuesStartRepeat ) {
+                        for( property in _valuesStartRepeat ) {
 
-                            if ( typeof ( _valuesEnd[property] ) === "string" ) {
+                            if( typeof ( _valuesEnd[property] ) === "string" ) {
                                 _valuesStartRepeat[property] = _valuesStartRepeat[property] + parseFloat( _valuesEnd[property], 10 );
                             }
 
-                            if ( _yoyo ) {
+                            if( _yoyo ) {
                                 var tmp = _valuesStartRepeat[property];
                                 _valuesStartRepeat[property] = _valuesEnd[property];
                                 _valuesEnd[property] = tmp;
@@ -407,13 +418,13 @@
 
                     } else {
 
-                        if ( _onCompleteCallback !== null ) {
+                        if( _onCompleteCallback !== null ) {
 
                             _onCompleteCallback.call( _object );
 
                         }
 
-                        for ( var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++ ) {
+                        for( var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++ ) {
 
                             _chainedTweens[i].start( time );
 
@@ -460,7 +471,7 @@
 
                 InOut: function ( k ) {
 
-                    if ( ( k *= 2 ) < 1 ) return 0.5 * k * k;
+                    if( ( k *= 2 ) < 1 ) return 0.5 * k * k;
                     return -0.5 * ( --k * ( k - 2 ) - 1 );
 
                 }
@@ -483,7 +494,7 @@
 
                 InOut: function ( k ) {
 
-                    if ( ( k *= 2 ) < 1 ) return 0.5 * k * k * k;
+                    if( ( k *= 2 ) < 1 ) return 0.5 * k * k * k;
                     return 0.5 * ( ( k -= 2 ) * k * k + 2 );
 
                 }
@@ -506,7 +517,7 @@
 
                 InOut: function ( k ) {
 
-                    if ( ( k *= 2 ) < 1 ) return 0.5 * k * k * k * k;
+                    if( ( k *= 2 ) < 1 ) return 0.5 * k * k * k * k;
                     return -0.5 * ( ( k -= 2 ) * k * k * k - 2 );
 
                 }
@@ -529,7 +540,7 @@
 
                 InOut: function ( k ) {
 
-                    if ( ( k *= 2 ) < 1 ) return 0.5 * k * k * k * k * k;
+                    if( ( k *= 2 ) < 1 ) return 0.5 * k * k * k * k * k;
                     return 0.5 * ( ( k -= 2 ) * k * k * k * k + 2 );
 
                 }
@@ -574,9 +585,9 @@
 
                 InOut: function ( k ) {
 
-                    if ( k === 0 ) return 0;
-                    if ( k === 1 ) return 1;
-                    if ( ( k *= 2 ) < 1 ) return 0.5 * Math.pow( 1024, k - 1 );
+                    if( k === 0 ) return 0;
+                    if( k === 1 ) return 1;
+                    if( ( k *= 2 ) < 1 ) return 0.5 * Math.pow( 1024, k - 1 );
                     return 0.5 * ( -Math.pow( 2, -10 * ( k - 1 ) ) + 2 );
 
                 }
@@ -599,7 +610,7 @@
 
                 InOut: function ( k ) {
 
-                    if ( ( k *= 2 ) < 1 ) return -0.5 * ( Math.sqrt( 1 - k * k ) - 1 );
+                    if( ( k *= 2 ) < 1 ) return -0.5 * ( Math.sqrt( 1 - k * k ) - 1 );
                     return 0.5 * ( Math.sqrt( 1 - ( k -= 2 ) * k ) + 1 );
 
                 }
@@ -611,9 +622,9 @@
                 In: function ( k ) {
 
                     var s, a = 0.1, p = 0.4;
-                    if ( k === 0 ) return 0;
-                    if ( k === 1 ) return 1;
-                    if ( !a || a < 1 ) { a = 1; s = p / 4; }
+                    if( k === 0 ) return 0;
+                    if( k === 1 ) return 1;
+                    if( !a || a < 1 ) { a = 1; s = p / 4; }
                     else s = p * Math.asin( 1 / a ) / ( 2 * Math.PI );
                     return -( a * Math.pow( 2, 10 * ( k -= 1 ) ) * Math.sin(( k - s ) * ( 2 * Math.PI ) / p ) );
 
@@ -622,9 +633,9 @@
                 Out: function ( k ) {
 
                     var s, a = 0.1, p = 0.4;
-                    if ( k === 0 ) return 0;
-                    if ( k === 1 ) return 1;
-                    if ( !a || a < 1 ) { a = 1; s = p / 4; }
+                    if( k === 0 ) return 0;
+                    if( k === 1 ) return 1;
+                    if( !a || a < 1 ) { a = 1; s = p / 4; }
                     else s = p * Math.asin( 1 / a ) / ( 2 * Math.PI );
                     return ( a * Math.pow( 2, -10 * k ) * Math.sin(( k - s ) * ( 2 * Math.PI ) / p ) + 1 );
 
@@ -633,11 +644,11 @@
                 InOut: function ( k ) {
 
                     var s, a = 0.1, p = 0.4;
-                    if ( k === 0 ) return 0;
-                    if ( k === 1 ) return 1;
-                    if ( !a || a < 1 ) { a = 1; s = p / 4; }
+                    if( k === 0 ) return 0;
+                    if( k === 1 ) return 1;
+                    if( !a || a < 1 ) { a = 1; s = p / 4; }
                     else s = p * Math.asin( 1 / a ) / ( 2 * Math.PI );
-                    if ( ( k *= 2 ) < 1 ) return -0.5 * ( a * Math.pow( 2, 10 * ( k -= 1 ) ) * Math.sin(( k - s ) * ( 2 * Math.PI ) / p ) );
+                    if( ( k *= 2 ) < 1 ) return -0.5 * ( a * Math.pow( 2, 10 * ( k -= 1 ) ) * Math.sin(( k - s ) * ( 2 * Math.PI ) / p ) );
                     return a * Math.pow( 2, -10 * ( k -= 1 ) ) * Math.sin(( k - s ) * ( 2 * Math.PI ) / p ) * 0.5 + 1;
 
                 }
@@ -663,7 +674,7 @@
                 InOut: function ( k ) {
 
                     var s = 1.70158 * 1.525;
-                    if ( ( k *= 2 ) < 1 ) return 0.5 * ( k * k * ( ( s + 1 ) * k - s ) );
+                    if( ( k *= 2 ) < 1 ) return 0.5 * ( k * k * ( ( s + 1 ) * k - s ) );
                     return 0.5 * ( ( k -= 2 ) * k * ( ( s + 1 ) * k + s ) + 2 );
 
                 }
@@ -680,15 +691,15 @@
 
                 Out: function ( k ) {
 
-                    if ( k < ( 1 / 2.75 ) ) {
+                    if( k < ( 1 / 2.75 ) ) {
 
                         return 7.5625 * k * k;
 
-                    } else if ( k < ( 2 / 2.75 ) ) {
+                    } else if( k < ( 2 / 2.75 ) ) {
 
                         return 7.5625 * ( k -= ( 1.5 / 2.75 ) ) * k + 0.75;
 
-                    } else if ( k < ( 2.5 / 2.75 ) ) {
+                    } else if( k < ( 2.5 / 2.75 ) ) {
 
                         return 7.5625 * ( k -= ( 2.25 / 2.75 ) ) * k + 0.9375;
 
@@ -702,7 +713,7 @@
 
                 InOut: function ( k ) {
 
-                    if ( k < 0.5 ) return TWEEN.Easing.Bounce.In( k * 2 ) * 0.5;
+                    if( k < 0.5 ) return TWEEN.Easing.Bounce.In( k * 2 ) * 0.5;
                     return TWEEN.Easing.Bounce.Out( k * 2 - 1 ) * 0.5 + 0.5;
 
                 }
@@ -717,8 +728,8 @@
 
                 var m = v.length - 1, f = m * k, i = Math.floor( f ), fn = TWEEN.Interpolation.Utils.Linear;
 
-                if ( k < 0 ) return fn( v[0], v[1], f );
-                if ( k > 1 ) return fn( v[m], v[m - 1], m - f );
+                if( k < 0 ) return fn( v[0], v[1], f );
+                if( k > 1 ) return fn( v[m], v[m - 1], m - f );
 
                 return fn( v[i], v[i + 1 > m ? m : i + 1], f - i );
 
@@ -728,7 +739,7 @@
 
                 var b = 0, n = v.length - 1, pw = Math.pow, bn = TWEEN.Interpolation.Utils.Bernstein, i;
 
-                for ( i = 0; i <= n; i++ ) {
+                for( i = 0; i <= n; i++ ) {
                     b += pw( 1 - k, n - i ) * pw( k, i ) * v[i] * bn( n, i );
                 }
 
@@ -740,16 +751,16 @@
 
                 var m = v.length - 1, f = m * k, i = Math.floor( f ), fn = TWEEN.Interpolation.Utils.CatmullRom;
 
-                if ( v[0] === v[m] ) {
+                if( v[0] === v[m] ) {
 
-                    if ( k < 0 ) i = Math.floor( f = m * ( 1 + k ) );
+                    if( k < 0 ) i = Math.floor( f = m * ( 1 + k ) );
 
                     return fn( v[( i - 1 + m ) % m], v[i], v[( i + 1 ) % m], v[( i + 2 ) % m], f - i );
 
                 } else {
 
-                    if ( k < 0 ) return v[0] - ( fn( v[0], v[0], v[1], v[1], -f ) - v[0] );
-                    if ( k > 1 ) return v[m] - ( fn( v[m], v[m], v[m - 1], v[m - 1], f - m ) - v[m] );
+                    if( k < 0 ) return v[0] - ( fn( v[0], v[0], v[1], v[1], -f ) - v[0] );
+                    if( k > 1 ) return v[m] - ( fn( v[m], v[m], v[m - 1], v[m - 1], f - m ) - v[m] );
 
                     return fn( v[i ? i - 1 : 0], v[i], v[m < i + 1 ? m : i + 1], v[m < i + 2 ? m : i + 2], f - i );
 
@@ -779,8 +790,8 @@
                     return function ( n ) {
 
                         var s = 1, i;
-                        if ( a[n] ) return a[n];
-                        for ( i = n; i > 1; i-- ) s *= i;
+                        if( a[n] ) return a[n];
+                        for( i = n; i > 1; i-- ) s *= i;
                         return a[n] = s;
 
                     };
@@ -798,7 +809,7 @@
 
         };
     </script>
-    
+
     <!-- rStat - https://github.com/spite/rstats -->
     <script type="text/javascript">
         // performance.now() polyfill from https://gist.github.com/paulirish/5438650
@@ -806,15 +817,15 @@
         ( function () {
 
             // prepare base perf object
-            if ( typeof window.performance === 'undefined' ) {
+            if( typeof window.performance === 'undefined' ) {
                 window.performance = {};
             }
 
-            if ( !window.performance.now ) {
+            if( !window.performance.now ) {
 
                 var nowOffset = Date.now();
 
-                if ( performance.timing && performance.timing.navigationStart ) {
+                if( performance.timing && performance.timing.navigationStart ) {
                     nowOffset = performance.timing.navigationStart
                 }
 
@@ -840,7 +851,7 @@
             var _settings = settings || {},
                 _colours = ['#850700', '#c74900', '#fcb300', '#284280', '#4c7c0c'];
 
-            if ( !_settings.values ) _settings.values = {};
+            if( !_settings.values ) _settings.values = {};
 
             function Graph( _dom, _id ) {
 
@@ -889,9 +900,9 @@
                 function _draw( v, alarm ) {
                     _current += ( v - _current ) * .1;
                     _max *= .99;
-                    if ( _current > _max ) _max = _current;
+                    if( _current > _max ) _max = _current;
                     _ctx.drawImage( _canvas, 1, 0, _canvas.width - 1, _canvas.height, 0, 0, _canvas.width - 1, _canvas.height );
-                    if ( alarm ) {
+                    if( alarm ) {
                         _ctx.drawImage( _alarmCanvas, _canvas.width - 1, _canvas.height - _current * _canvas.height / _max - 10 );
                     } else {
                         _ctx.drawImage( _dotCanvas, _canvas.width - 1, _canvas.height - _current * _canvas.height / _max - 10 );
@@ -931,7 +942,7 @@
                 function _draw( v ) {
                     _ctx.drawImage( _canvas, 1, 0, _canvas.width - 1, _canvas.height, 0, 0, _canvas.width - 1, _canvas.height );
                     var th = 0;
-                    for ( var j in v ) {
+                    for( var j in v ) {
                         var h = v[j] * _canvas.height;
                         _ctx.fillStyle = _colours[j];
                         _ctx.fillRect( _canvas.width - 1, th, 1, h );
@@ -975,7 +986,7 @@
 
                 _dom.appendChild( _spanId );
                 _dom.appendChild( _spanValue );
-                if ( group ) group.div.appendChild( _dom );
+                if( group ) group.div.appendChild( _dom );
                 else _div.appendChild( _dom );
 
                 _time = performance.now();
@@ -1005,7 +1016,7 @@
                     var t = performance.now();
                     var e = t - _time;
                     _total++;
-                    if ( e > 1000 ) {
+                    if( e > 1000 ) {
                         _value = _total * 1000 / e;
                         _total = 0;
                         _time = t;
@@ -1051,14 +1062,14 @@
             function _perf( id ) {
 
                 id = id.toLowerCase();
-                if ( id === undefined ) id = 'default';
-                if ( _perfCounters[id] ) return _perfCounters[id];
+                if( id === undefined ) id = 'default';
+                if( _perfCounters[id] ) return _perfCounters[id];
 
                 var group = null;
-                if ( _settings && _settings.groups ) {
-                    for ( var j in _settings.groups ) {
+                if( _settings && _settings.groups ) {
+                    for( var j in _settings.groups ) {
                         var g = _settings.groups[parseInt( j, 10 )];
-                        if ( g.values.indexOf( id.toLowerCase() ) != -1 ) {
+                        if( g.values.indexOf( id.toLowerCase() ) != -1 ) {
                             group = g;
                             continue;
                         }
@@ -1073,13 +1084,13 @@
 
             function _init() {
 
-                if ( _settings.plugins ) {
-                    if ( !_settings.values ) _settings.values = {};
-                    if ( !_settings.groups ) _settings.groups = [];
-                    if ( !_settings.fractions ) _settings.fractions = [];
-                    for ( var j = 0; j < _settings.plugins.length; j++ ) {
+                if( _settings.plugins ) {
+                    if( !_settings.values ) _settings.values = {};
+                    if( !_settings.groups ) _settings.groups = [];
+                    if( !_settings.fractions ) _settings.fractions = [];
+                    for( var j = 0; j < _settings.plugins.length; j++ ) {
                         _settings.plugins[j].attach( _perf );
-                        for ( var k in _settings.plugins[j].values ) {
+                        for( var k in _settings.plugins[j].values ) {
                             _settings.values[k] = _settings.plugins[j].values[k];
                         }
                         _settings.groups = _settings.groups.concat( _settings.plugins[j].groups );
@@ -1101,10 +1112,10 @@
                 _div.style.left = _div.style.top = 0;
                 document.body.appendChild( _div );
 
-                if ( !_settings ) return;
+                if( !_settings ) return;
 
-                if ( _settings.groups ) {
-                    for ( var j in _settings.groups ) {
+                if( _settings.groups ) {
+                    for( var j in _settings.groups ) {
                         var g = _settings.groups[parseInt( j, 10 )];
                         var div = document.createElement( 'div' );
                         g.div = div;
@@ -1120,8 +1131,8 @@
                     }
                 }
 
-                if ( _settings.fractions ) {
-                    for ( var j in _settings.fractions ) {
+                if( _settings.fractions ) {
+                    for( var j in _settings.fractions ) {
                         var f = _settings.fractions[parseInt( j, 10 )];
                         var div = document.createElement( 'div' );
                         var legend = document.createElement( 'div' );
@@ -1129,7 +1140,7 @@
                         legend.style.lineHeight = '10px';
 
                         var h = 0;
-                        for ( var k in _settings.fractions[j].steps ) {
+                        for( var k in _settings.fractions[j].steps ) {
                             var p = document.createElement( 'p' );
                             p.textContent = _settings.fractions[j].steps[k];
                             p.style.color = _colours[h];
@@ -1155,25 +1166,25 @@
 
             function _update() {
 
-                for ( var j in _settings.plugins ) {
+                for( var j in _settings.plugins ) {
                     _settings.plugins[j].update();
                 }
 
-                for ( var j in _perfCounters ) {
+                for( var j in _perfCounters ) {
                     _perfCounters[j].draw();
                 }
 
-                if ( _settings && _settings.fractions ) {
-                    for ( var j in _settings.fractions ) {
+                if( _settings && _settings.fractions ) {
+                    for( var j in _settings.fractions ) {
                         var f = _settings.fractions[parseInt( j, 10 )];
                         var v = [];
                         var base = _perfCounters[f.base.toLowerCase()];
-                        if ( base ) {
+                        if( base ) {
                             base = base.value();
-                            for ( var k in _settings.fractions[j].steps ) {
+                            for( var k in _settings.fractions[j].steps ) {
                                 var s = _settings.fractions[j].steps[parseInt( k, 10 )].toLowerCase();
                                 var val = _perfCounters[s];
-                                if ( val ) {
+                                if( val ) {
                                     v.push( val.value() / base );
                                 }
                             }
@@ -1187,7 +1198,7 @@
             _init();
 
             return function ( id ) {
-                if ( id ) return _perf( id );
+                if( id ) return _perf( id );
                 return {
                     update: _update
                 }
