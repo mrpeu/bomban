@@ -15,15 +15,15 @@
             top: 2em;
             margin-left: -250px;
             background-color: #eee;
-            padding: 2px;
+            padding: 3px; /* 1/2 border */
         }
 
         #canvas-container:after {
-            border: .15em solid #222;
+            border: 6px solid #222; /* border */
             box-shadow: rgba(0,0,0,0.4) .15em .15em inset;
             content: "";
-            width: 500px;
-            height: 500px;
+            width: 494px; /* width - border */
+            height: 494px;
             left: 0;
             top: 0;
             position: absolute;
@@ -31,10 +31,10 @@
 
         #canvas-shadow {
             position: absolute;
-            width: 707px;
-            height: 707px;
-            left: 147px;
-            top: 147px;
+            width: 710px;
+            height: 710px;
+            left: 150px;
+            top: 150px;
             -webkit-transform: rotate(45deg);
             background: linear-gradient(to right, #333, #444);
         }
