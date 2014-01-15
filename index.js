@@ -518,11 +518,6 @@ Player.prototype.init = function() {
 Player.prototype.update = function( time ) {
 
     if ( this.health <= 0 ) this.isAlive = false;
-
-    this.bombs.forEach( function( b ) {
-        b.update( time );
-        //this.bombs.splice( this.player.bombs.indexOf( this ), 1 );
-    } );
 };
 
 Player.prototype.render = function( ctx ) {
@@ -607,16 +602,13 @@ Player.prototype.tweenMoveTo = function( x, y ) {
 
     var animTime = 75 / ( this._tweenMove.length || 1 );
 
-    var newTweenMove = new TWEEN.Tween( this )
+    var me = this;
+
+    var newTweenMove = new TWEEN.Tween( { x: this.x, y: this.y })
         .easing( TWEEN.Easing.Quadratic.Out )
         .to( { x: x, y: y }, animTime )
-        .onStart( function( t ) {
-            //console.log( "Player._tweenMove started @ " + this.x + ";" + this.y );
-        } )
-        .onComplete( function() {
-            this._tweenMove.shift();
-            //console.log( "Player._tweenMove stopped @ " + this.x + ";" + this.y );
-        } )
+        .onUpdate( function( t ) { me.x = this.x; me.y = this.y; } )
+        .onComplete( function() { me._tweenMove.shift(); } )
     ;
 
     this._tweenMove.push( newTweenMove );
@@ -644,8 +636,9 @@ Player.prototype.tweenMoveTo = function( x, y ) {
 Player.prototype.action = function() {
 
     this.bombs.push(
-      new Bomb( this.game, {
+      new BB.Bomb( this.game, {
           player: this,
+          size: this.game.blockSize/2,
           x: this.x,
           y: this.y
       } )
@@ -656,167 +649,6 @@ Player.prototype.action = function() {
 
 
 
-
-
-
-//============
-// Bomb
-//============
-
-var Bomb = function( game, opt ) {
-    this.game = game;
-    Object.extend( this, opt );
-    this.init();
-};
-
-Bomb.prototype.x = 0;
-Bomb.prototype.y = 0;
-Bomb.prototype.size = 10;
-Bomb.prototype.direction = DIRECTION[1];
-Bomb.prototype.color = "#111";
-Bomb.prototype.colorBorder = "#000000";
-Bomb.prototype.player = undefined;
-Bomb.prototype.power = 3; // how far(nb blocks) can it blow up
-Bomb.prototype.duration = 2000;
-Bomb.prototype.timeoutID = undefined;
-Bomb.prototype.isAlive = true;
-
-Bomb.prototype.fires = [];
-
-Bomb.all = [];
-
-Bomb.prototype.init = function() {
-    this.id = Bomb.all.length;
-    Bomb.all.push( this );
-
-    this.timeoutID = window.setTimeout(
-      this.boom.bind( this ),
-      this.duration || 1000
-    );
-
-    // temporary
-    this.startTick = Date.now();
-    this.lastHue = 1;
-};
-
-Bomb.prototype.boom = function() {
-    this.isAlive = false;
-    window.clearTimeout( this.timeoutID );
-    this.timeoutID = undefined;
-
-    var thisBlock = this.game.getBlockAt( this.x, this.y );
-    var hbs = game.blockSize / 2;
-    var cursorBlock = thisBlock, done = false, direction;
-
-    var boomBlock = function( block ) {
-        Player.all.forEach( function( player ) {
-
-            if ( block.contains( player ) ) {
-                player.health--;
-            }
-
-            player.bombs.forEach( function( bomb ) {
-                if ( bomb.isAlive && block.contains( bomb ) ) {
-                    bomb.boom();
-                }
-            } );
-
-        } );
-    };
-
-    this.fires.push(
-      new BB.Fire( this.game, {
-          x: cursorBlock.x + hbs,
-          y: cursorBlock.y + hbs,
-          power: this.power,
-          size: hbs
-      } )
-    );
-
-    boomBlock( cursorBlock );
-
-    for ( var d = 0; d < DIRECTION.length; d++ ) {
-        direction = DIRECTION[d];
-        cursorBlock = thisBlock;
-        done = false;
-
-        for ( var i = 1; i < this.power && !done; i++ ) {
-
-            cursorBlock = this.game.getNextBlockAt( cursorBlock.x, cursorBlock.y, direction );
-
-            if ( cursorBlock !== undefined ) {
-                boomBlock( cursorBlock );
-
-                done = ( cursorBlock.type != "EMPTY" && cursorBlock.type != "ERROR" );
-
-                cursorBlock.empty();
-
-                this.fires.push(
-                  new BB.Fire( this.game, {
-                      x: cursorBlock.x + hbs,
-                      y: cursorBlock.y + hbs,
-                      power: this.power - i,
-                      size: hbs
-                  } )
-                );
-            }
-            else {
-                done = true;
-            }
-
-        }
-    }
-};
-
-Bomb.prototype.update = function( time ) {
-};
-
-Bomb.prototype.render = function( ctx ) {
-
-    if ( this.isAlive ) {
-        var rotation = -0.8;
-
-        ctx.save();
-        ctx.translate( this.x, this.y );
-        ctx.rotate( rotation );
-
-        var s = this.size, x = 0, y = 0;
-
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = ( Date.now() / 300 % 2 > 1 ) ? "#f40" : "#fa0";
-        ctx.fillStyle = this.color;
-
-        ctx.beginPath();
-        ctx.arc( x, y, this.size, 0, twoPI );
-        ctx.fillRect( x - s / 4, y - s - s / 3, s / 2, s / 2 );
-        ctx.fill();
-
-        ctx.beginPath();
-        var arcStart = -Math.PI / 2 + 0.3,
-            arcEnd = twoPI - 0.6;
-        ctx.arc( x, y, s, arcStart, ( arcEnd / this.duration ) * ( Date.now() - this.startTick ) + arcStart );
-        ctx.stroke();
-
-        ctx.restore();
-
-    }
-
-    if ( this.fires.length > 0 ) {
-        // render fires
-        var f;
-        for ( var i = this.fires.length - 1; i >= 0; i-- ) {
-            f = this.fires[i];
-            if ( f.isAlive ) {
-                f.render( ctx );
-            } else {
-                f = undefined;
-            }
-        }
-        this.fires.clean();
-    }
-};
-
-//============
 
 
 
@@ -953,6 +785,153 @@ BB.Fire.prototype.render = function( ctx ) {
 //############
 
 
+//############
+// Bomb
+//############
+
+BB.Bomb = function( game, opt ) {
+
+    BB.Prop.apply( this, arguments );
+
+    this.timeoutID = window.setTimeout(
+      this.boom.bind( this ),
+      this.duration || 1000
+    );
+
+    // temporary
+    this.startTick = Date.now();
+    this.lastHue = 1;
+};
+
+BB.Bomb.prototype = Object.create( BB.Prop );
+
+BB.Bomb.prototype.color = "#000000";
+BB.Bomb.prototype.colorBorder = "#ffff00";
+BB.Bomb.prototype.power = 3; // how far(nb blocks) can it blow up
+BB.Bomb.prototype.duration = 2000;
+BB.Bomb.prototype.isAlive = true;
+BB.Bomb.prototype.player = undefined;
+BB.Bomb.prototype.timeoutID = undefined;
+BB.Bomb.prototype.fires = [];
+
+
+BB.Bomb.prototype.render = function( ctx ) {
+
+    if ( this.isAlive ) {
+        var rotation = -0.8;
+
+        ctx.save();
+        ctx.translate( this.x, this.y );
+        //ctx.rotate( rotation );
+
+        var s = this.size, x = 0, y = 0;
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = ( Date.now() / 300 % 2 > 1 ) ? "#f40" : "#fa0";
+        ctx.fillStyle = this.color;
+
+        ctx.beginPath();
+        ctx.arc( x, y, this.size/2, 0, twoPI );
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.fillStyle = "#00f";
+        ctx.fillRect( x - s/8, y - s/2 - s/, s / 4, s / 4 );
+
+        ctx.beginPath();
+        var arcStart = -Math.PI / 2 + 0.2,
+            arcEnd = twoPI - 0.4;
+        ctx.arc( x, y, s/2, arcStart, ( arcEnd / this.duration ) * ( Date.now() - this.startTick ) + arcStart );
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
+
+    if ( this.fires.length > 0 ) {
+        // render fires
+        var f;
+        for ( var i = this.fires.length - 1; i >= 0; i-- ) {
+            f = this.fires[i];
+            if ( f.isAlive ) {
+                f.render( ctx );
+            } else {
+                f = undefined;
+            }
+        }
+        this.fires.clean();
+    }
+};
+
+BB.Bomb.prototype.boom = function() {
+    this.isAlive = false;
+    window.clearTimeout( this.timeoutID );
+    this.timeoutID = undefined;
+
+    var thisBlock = this.game.getBlockAt( this.x, this.y );
+    var hbs = game.blockSize / 2;
+    var cursorBlock = thisBlock, done = false, direction;
+
+    var boomBlock = function( block ) {
+        Player.all.forEach( function( player ) {
+
+            if ( block.contains( player ) ) {
+                player.health--;
+            }
+
+            player.bombs.forEach( function( bomb ) {
+                if ( bomb.isAlive && block.contains( bomb ) ) {
+                    bomb.boom();
+                }
+            } );
+
+        } );
+    };
+
+    this.fires.push(
+      new BB.Fire( this.game, {
+          x: cursorBlock.x + hbs,
+          y: cursorBlock.y + hbs,
+          power: this.power,
+          size: hbs
+      } )
+    );
+
+    boomBlock( cursorBlock );
+
+    for ( var d = 0; d < DIRECTION.length; d++ ) {
+        direction = DIRECTION[d];
+        cursorBlock = thisBlock;
+        done = false;
+
+        for ( var i = 1; i < this.power && !done; i++ ) {
+
+            cursorBlock = this.game.getNextBlockAt( cursorBlock.x, cursorBlock.y, direction );
+
+            if ( cursorBlock !== undefined ) {
+                boomBlock( cursorBlock );
+
+                done = ( cursorBlock.type != "EMPTY" && cursorBlock.type != "ERROR" );
+
+                cursorBlock.empty();
+
+                this.fires.push(
+                  new BB.Fire( this.game, {
+                      x: cursorBlock.x + hbs,
+                      y: cursorBlock.y + hbs,
+                      power: this.power - i,
+                      size: hbs
+                  } )
+                );
+            }
+            else {
+                done = true;
+            }
+
+        }
+    }
+};
+//############
 
 
 
