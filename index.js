@@ -6,7 +6,7 @@ DEBUG = false;
 // utils
 //============
 
-window.requestAnimFrame = function () { return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || function ( a ) { window.setTimeout( a, 1E3 / 60 ) } }();
+window.requestAnimFrame = function() { return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || function( a ) { window.setTimeout( a, 1E3 / 60 ) } }();
 
 //--------------
 var deg2rad = Math.PI / 180;
@@ -14,20 +14,20 @@ var rad2deg = 180 / Math.PI;
 var twoPI = Math.PI * 2;
 var DIRECTION = ["west", "north", "east", "south"];
 
-var getHSLA = function ( h, s, l, a ) {
+var getHSLA = function( h, s, l, a ) {
     return 'hsla(' + h + ',' + s + '%,' + l + '%,' + a + ')';
 };
 
-Object.extend = function ( obj, extension ) {
-    for( var prop in extension )
+Object.extend = function( obj, extension ) {
+    for ( var prop in extension )
         obj[prop] = extension[prop];
 
     return obj;
 };
 
-Array.prototype.clean = function ( deleteValue ) {
-    for( var i = 0; i < this.length; i++ ) {
-        if( this[i] == deleteValue ) {
+Array.prototype.clean = function( deleteValue ) {
+    for ( var i = 0; i < this.length; i++ ) {
+        if ( this[i] == deleteValue ) {
             this.splice( i, 1 );
             i--;
         }
@@ -42,14 +42,14 @@ var canvasEl = document.getElementById( 'canvas' );
 
 var ctx = canvasEl.getContext( '2d' );
 
-window.onresize = function () {
+window.onresize = function() {
     canvasEl.width = canvasEl.offsetWidth;
     canvasEl.height = canvasEl.offsetHeight;
 };
 
 var mouse;
 
-window.onmousemove = function ( e ) {
+window.onmousemove = function( e ) {
     mouse = { x: e.x, y: e.y };
 };
 //============
@@ -61,7 +61,7 @@ window.onmousemove = function ( e ) {
 // Game
 //============
 
-Game = function ( opt ) {
+Game = function( opt ) {
     Object.extend( this, opt );
 
     window.onresize();
@@ -81,7 +81,7 @@ Game.prototype.blocks = [];
 Game.prototype.grid = undefined;
 Game.prototype.props = [];
 
-Game.prototype.init = function () {
+Game.prototype.init = function() {
 
     var blockSize = this.blockSize;
 
@@ -89,8 +89,8 @@ Game.prototype.init = function () {
     // blocks
     var ratioEmptyBlocks = 0.6;
 
-    for( var i = 0; i < this.nbWBlocks; i++ )
-        for( var j = 0; j < this.nbHBlocks; j++ ) {
+    for ( var i = 0; i < this.nbWBlocks; i++ )
+        for ( var j = 0; j < this.nbHBlocks; j++ ) {
 
             this.blocks.push(
               new Block( this, {
@@ -132,9 +132,9 @@ Game.prototype.init = function () {
 
 };
 
-Game.prototype.update = function () {
+Game.prototype.update = function() {
 
-    if( canvasEl.width != this.width || canvasEl.height != this.height ) {
+    if ( canvasEl.width != this.width || canvasEl.height != this.height ) {
         this.width = canvasEl.width;
         this.height = canvasEl.height;
         this.grid.nbWBlocks = this.width / this.blockSize;
@@ -148,20 +148,20 @@ Game.prototype.update = function () {
     //--------
     // blocks
     var allBlocks = this.blocks;
-    for( var i = 0; i < allBlocks.length; i++ ) {
+    for ( var i = 0; i < allBlocks.length; i++ ) {
         allBlocks[i].update();
     }
 
     //--------
     // players
     var allPlayers = this.players;
-    for( var i = 0; i < allPlayers.length; i++ ) {
+    for ( var i = 0; i < allPlayers.length; i++ ) {
         allPlayers[i].update( ctx );
     }
 
 };
 
-Game.prototype.render = function ( ctx ) {
+Game.prototype.render = function( ctx ) {
 
     //--------
     // grid
@@ -170,35 +170,35 @@ Game.prototype.render = function ( ctx ) {
     //--------
     // blocks
     var allBlocks = this.blocks;
-    for( var i = 0; i < allBlocks.length; i++ ) {
+    for ( var i = 0; i < allBlocks.length; i++ ) {
         allBlocks[i].render( ctx );
     }
 
     //--------
     // players
     var allPlayers = this.players;
-    for( var i = 0; i < allPlayers.length; i++ ) {
+    for ( var i = 0; i < allPlayers.length; i++ ) {
         allPlayers[i].render( ctx );
     }
 };
 
-Game.prototype.getBlock = function ( posX, posY ) {
+Game.prototype.getBlock = function( posX, posY ) {
     return this.blocks[Math.round( posX + this.nbHBlocks * posY )];
 };
 
-Game.prototype.getBlockAt = function ( x, y ) {
+Game.prototype.getBlockAt = function( x, y ) {
     return this.getBlock( Math.floor( x / this.blockSize ), Math.floor( y / this.blockSize ) );
 };
 
-Game.prototype.getNextBlockAt = function ( x, y, direction ) {
+Game.prototype.getNextBlockAt = function( x, y, direction ) {
     x += ( direction == "east" ? this.blockSize : direction == "west" ? -this.blockSize : 0 );
-    if( x < 0 || x > this.width ) return;
+    if ( x < 0 || x > this.width ) return;
     y += ( direction == "south" ? this.blockSize : direction == "north" ? -this.blockSize : 0 );
-    if( y < 0 || y > this.height ) return;
+    if ( y < 0 || y > this.height ) return;
     return this.getBlockAt( x, y );
 };
 
-Game.prototype.makeRoomForPlayer = function ( player, nbBlocksToEmpty ) {
+Game.prototype.makeRoomForPlayer = function( player, nbBlocksToEmpty ) {
     // make some empty blocks around the player
     var ba, bb, nextx, nexty, dir;
     bb = this.getBlockAt( player.x, player.y );
@@ -207,7 +207,7 @@ Game.prototype.makeRoomForPlayer = function ( player, nbBlocksToEmpty ) {
     do {
         var idir = Math.round( Math.random() * ( DIRECTION.length - 1 ) );
         dir = DIRECTION[idir];
-    } while(
+    } while (
       this.getBlockAt(
         bb.x + ( dir == "east" ? this.blockSize * nbBlocksToEmpty : dir == "west" ? -this.blockSize * nbBlocksToEmpty : 0 ),
         bb.y + ( dir == "south" ? this.blockSize * nbBlocksToEmpty : dir == "north" ? -this.blockSize * nbBlocksToEmpty : 0 )
@@ -216,9 +216,9 @@ Game.prototype.makeRoomForPlayer = function ( player, nbBlocksToEmpty ) {
     // turn the player toward this direction
     player.direction = dir;
     // clear the way
-    for( var i = 0; i < nbBlocksToEmpty; i++ ) {
+    for ( var i = 0; i < nbBlocksToEmpty; i++ ) {
 
-        while( bb == undefined || bb == ba ) {
+        while ( bb == undefined || bb == ba ) {
 
             bb = this.getBlockAt(
               ba.x + ( dir == "east" ? this.blockSize : dir == "west" ? -this.blockSize : 0 ),
@@ -245,7 +245,7 @@ Game.prototype.makeRoomForPlayer = function ( player, nbBlocksToEmpty ) {
 // Block
 //============
 
-Block = function ( game, opt ) {
+Block = function( game, opt ) {
     this.game = game;
     Object.extend( this, opt );
     this.init();
@@ -253,7 +253,7 @@ Block = function ( game, opt ) {
 
 Block.TYPES = ["MUD", "EMPTY", "ERROR"];
 Block.RenderFns = {
-    "MUD": function () {
+    "MUD": function() {
 
         ctx.fillStyle = "#ffa000";
         //ctx.lineWidth = 1;
@@ -270,7 +270,7 @@ Block.RenderFns = {
         ctx.fill();
         //ctx.stroke();
 
-        if( DEBUG ) {
+        if ( DEBUG ) {
             ctx.fillStyle = "#fff";
             ctx.fillText(
               this.type[0] + this.type[1] + this.type[2], // this.id, 
@@ -281,7 +281,7 @@ Block.RenderFns = {
         }
     },
 
-    "EMPTY": function () {
+    "EMPTY": function() {
 
         ctx.fillStyle = "#7f7f7f";
         //ctx.lineWidth = 1;
@@ -289,7 +289,7 @@ Block.RenderFns = {
         var x = this.x, y = this.y, size = this.size;
         ctx.fillRect( x, y, size, size );
 
-        if( DEBUG ) {
+        if ( DEBUG ) {
             ctx.fillStyle = "#d0d0d0";
             ctx.fillText(
               this.type[0] + this.type[1] + this.type[2], // this.id, 
@@ -300,7 +300,7 @@ Block.RenderFns = {
         }
     },
 
-    "ERROR": function () {
+    "ERROR": function() {
         ctx.fillStyle = "#ff0000";
         ctx.strokeStyle = "#fff";
 
@@ -318,20 +318,20 @@ Block.prototype.x = 0;
 Block.prototype.y = 0;
 Block.prototype.type = "ERROR";
 
-Block.prototype.setRenderFn = function ( renderfn ) {
+Block.prototype.setRenderFn = function( renderfn ) {
     this.render = renderfn || Block.RenderFns[this.type] || this.render;
 };
 Block.all = [];
 
-Block.prototype.init = function () {
+Block.prototype.init = function() {
     this.id = Block.all.length;
     Block.all.push( this );
     this.setRenderFn();
 };
 
-Block.prototype.update = function () { };
+Block.prototype.update = function() { };
 
-Block.prototype.render = function () {
+Block.prototype.render = function() {
 
     ctx.lineWidth = 1;
     //ctx.strokeStyle = getHSLA( 0, 100, 50, 1 );
@@ -353,17 +353,17 @@ Block.prototype.render = function () {
 
 };
 
-Block.prototype.empty = function ( bomb, power ) {
+Block.prototype.empty = function( bomb, power ) {
     this.type = "EMPTY";
     this.setRenderFn();
 }
 
-Block.prototype.contains = function ( object ) {
+Block.prototype.contains = function( object ) {
 
-    if( object.x < this.x ) return false;
-    if( object.y < this.y ) return false;
-    if( object.x > ( this.x + this.game.blockSize ) ) return false;
-    if( object.y > ( this.y + this.game.blockSize ) ) return false;
+    if ( object.x < this.x ) return false;
+    if ( object.y < this.y ) return false;
+    if ( object.x > ( this.x + this.game.blockSize ) ) return false;
+    if ( object.y > ( this.y + this.game.blockSize ) ) return false;
 
     return true;
     ;
@@ -377,7 +377,7 @@ Block.prototype.contains = function ( object ) {
 // Grid
 //============
 
-Grid = function ( game, opt ) {
+Grid = function( game, opt ) {
     this.game = game;
     Object.extend( this, opt );
     this.init();
@@ -388,16 +388,16 @@ Grid.prototype.color = "#e2e2e2";
 
 Grid.all = [];
 
-Grid.prototype.init = function () {
+Grid.prototype.init = function() {
     this.id = Grid.all.length;
     Grid.all.push( this );
 };
 
-Grid.prototype.update = function ( time ) { };
+Grid.prototype.update = function( time ) { };
 
-Grid.prototype.render = function ( ctx ) {
+Grid.prototype.render = function( ctx ) {
 
-    if( this.thickness < 1 ) return;
+    if ( this.thickness < 1 ) return;
 
     ctx.strokeStyle = this.color;
     ctx.lineWidth = this.thickness;
@@ -406,13 +406,13 @@ Grid.prototype.render = function ( ctx ) {
     var nbWBlocks = this.game.nbWBlocks;
     var nbHBlocks = this.game.nbHBlocks;
 
-    for( var i = 0; i < nbWBlocks + 1; i++ ) {
+    for ( var i = 0; i < nbWBlocks + 1; i++ ) {
         ctx.moveTo( 0, i * s );
         ctx.lineTo( nbWBlocks * s, i * s );
         ctx.stroke();
     }
 
-    for( var i = 0; i < nbHBlocks + 1; i++ ) {
+    for ( var i = 0; i < nbHBlocks + 1; i++ ) {
         ctx.moveTo( i * s, 0 );
         ctx.lineTo( i * s, nbHBlocks * s );
         ctx.stroke();
@@ -428,7 +428,7 @@ Grid.prototype.render = function ( ctx ) {
 // Input
 //============
 
-var Input = function ( game, opt ) {
+var Input = function( game, opt ) {
     this.game = game;
     Object.extend( this, opt );
     this.init();
@@ -436,21 +436,21 @@ var Input = function ( game, opt ) {
 
 Input.all = [];
 
-Input.prototype.init = function () {
+Input.prototype.init = function() {
     this.id = Input.all.length;
     Input.all.push( this );
 
     window.addEventListener( 'keydown', this.onKeyDown.bind( this ), false );
 };
 
-Input.prototype.update = function ( time ) {
+Input.prototype.update = function( time ) {
 
 };
 
-Input.prototype.onKeyDown = function ( e ) {
+Input.prototype.onKeyDown = function( e ) {
     e = e || window.event;
 
-    switch( e.keyCode ) {
+    switch ( e.keyCode ) {
         case 37: // left
             this.game.player.moveToward( DIRECTION[0] );
             e.preventDefault();
@@ -490,7 +490,7 @@ Input.prototype.onKeyDown = function ( e ) {
 // Player
 //============
 
-var Player = function ( game, opt ) {
+var Player = function( game, opt ) {
     this.game = game;
     Object.extend( this, opt );
     this.init();
@@ -510,31 +510,31 @@ Player.prototype.isAlive = true;
 
 Player.all = [];
 
-Player.prototype.init = function () {
+Player.prototype.init = function() {
     this.id = Player.all.length;
     Player.all.push( this );
 };
 
-Player.prototype.update = function ( time ) {
+Player.prototype.update = function( time ) {
 
-    if( this.health <= 0 ) this.isAlive = false;
+    if ( this.health <= 0 ) this.isAlive = false;
 
-    this.bombs.forEach( function ( b ) {
+    this.bombs.forEach( function( b ) {
         b.update( time );
         //this.bombs.splice( this.player.bombs.indexOf( this ), 1 );
     } );
 };
 
-Player.prototype.render = function ( ctx ) {
+Player.prototype.render = function( ctx ) {
 
     var x = this.x, y = this.y, s = this.size, hs = this.size / 2;
 
     ctx.save();
-    if( !this.isAlive ) ctx.globalAlpha = 0.75;
+    if ( !this.isAlive ) ctx.globalAlpha = 0.75;
 
     ctx.translate( x, y );
 
-    switch( this.direction ) {
+    switch ( this.direction ) {
         case "west": ctx.rotate( deg2rad * 90 ); break;
         case "east": ctx.rotate( deg2rad * -90 ); break;
         case "north": ctx.rotate( deg2rad * 180 ); break;
@@ -558,30 +558,30 @@ Player.prototype.render = function ( ctx ) {
     //for ( var i = this.bombs.length - 1, b = this.bombs[i]; i >= 0; i-- ) {
     //  b.render( ctx );
     //}
-    this.bombs.forEach( function ( b ) { b.render( ctx ); } );
+    this.bombs.forEach( function( b ) { b.render( ctx ); } );
 };
 
-Player.prototype.canMoveForward = function () {
-    if( this.health <= 0 ) return false;
+Player.prototype.canMoveForward = function() {
+    if ( this.health <= 0 ) return false;
     var b = this.game.getNextBlockAt(( this._x || this.x ), ( this._y || this.y ), this.direction );
     return b != undefined && b.type == "EMPTY";
 };
 
-Player.prototype.moveToward = function ( direction ) {
-    if( this.health <= 0 ) return false;
+Player.prototype.moveToward = function( direction ) {
+    if ( this.health <= 0 ) return false;
 
-    if( this.direction != direction ) {
+    if ( this.direction != direction ) {
         this.direction = direction;
     }
 
     this.direction = direction;
-    if( this.canMoveForward() )
+    if ( this.canMoveForward() )
         this.moveForward();
 };
 
-Player.prototype.moveForward = function () {
+Player.prototype.moveForward = function() {
 
-    switch( this.direction ) {
+    switch ( this.direction ) {
         case DIRECTION[0]: // left
             this.tweenMoveTo(( this._x || this.x ) - this.game.blockSize, ( this._y || this.y ) );
             break;
@@ -603,17 +603,17 @@ Player.prototype.moveForward = function () {
 
 };
 
-Player.prototype.tweenMoveTo = function ( x, y ) {
+Player.prototype.tweenMoveTo = function( x, y ) {
 
     var animTime = 75 / ( this._tweenMove.length || 1 );
 
     var newTweenMove = new TWEEN.Tween( this )
         .easing( TWEEN.Easing.Quadratic.Out )
         .to( { x: x, y: y }, animTime )
-        .onStart( function ( t ) {
+        .onStart( function( t ) {
             //console.log( "Player._tweenMove started @ " + this.x + ";" + this.y );
         } )
-        .onComplete( function () {
+        .onComplete( function() {
             this._tweenMove.shift();
             //console.log( "Player._tweenMove stopped @ " + this.x + ";" + this.y );
         } )
@@ -621,10 +621,10 @@ Player.prototype.tweenMoveTo = function ( x, y ) {
 
     this._tweenMove.push( newTweenMove );
 
-    if( this._tweenMove.length > 1 ) {
+    if ( this._tweenMove.length > 1 ) {
         this._tweenMove[0].stop();
 
-        for( var i = 0; i < this._tweenMove.length - 1; i++ ) {
+        for ( var i = 0; i < this._tweenMove.length - 1; i++ ) {
             this._tweenMove[i]
                 .setDuration( animTime )
                 .easing( TWEEN.Easing.Linear.None )
@@ -641,7 +641,7 @@ Player.prototype.tweenMoveTo = function ( x, y ) {
     this._y = y;
 }
 
-Player.prototype.action = function () {
+Player.prototype.action = function() {
 
     this.bombs.push(
       new Bomb( this.game, {
@@ -663,7 +663,7 @@ Player.prototype.action = function () {
 // Bomb
 //============
 
-var Bomb = function ( game, opt ) {
+var Bomb = function( game, opt ) {
     this.game = game;
     Object.extend( this, opt );
     this.init();
@@ -677,20 +677,21 @@ Bomb.prototype.color = "#111";
 Bomb.prototype.colorBorder = "#000000";
 Bomb.prototype.player = undefined;
 Bomb.prototype.power = 3; // how far(nb blocks) can it blow up
-Bomb.prototype.timeout = 2000;
+Bomb.prototype.duration = 2000;
+Bomb.prototype.timeoutID = undefined;
 Bomb.prototype.isAlive = true;
 
 Bomb.prototype.fires = [];
 
 Bomb.all = [];
 
-Bomb.prototype.init = function () {
+Bomb.prototype.init = function() {
     this.id = Bomb.all.length;
     Bomb.all.push( this );
 
-    window.setTimeout(
+    this.timeoutID = window.setTimeout(
       this.boom.bind( this ),
-      this.timeout || 1000
+      this.duration || 1000
     );
 
     // temporary
@@ -698,19 +699,28 @@ Bomb.prototype.init = function () {
     this.lastHue = 1;
 };
 
-Bomb.prototype.boom = function () {
+Bomb.prototype.boom = function() {
     this.isAlive = false;
+    window.clearTimeout( this.timeoutID );
+    this.timeoutID = undefined;
 
     var thisBlock = this.game.getBlockAt( this.x, this.y );
     var hbs = game.blockSize / 2;
     var cursorBlock = thisBlock, done = false, direction;
 
-    var killPlayer = function ( block ) {
-        Player.all.forEach( function ( player ) {
-            var contained = block.contains( player );
-            if( contained ) {
+    var boomBlock = function( block ) {
+        Player.all.forEach( function( player ) {
+
+            if ( block.contains( player ) ) {
                 player.health--;
             }
+
+            player.bombs.forEach( function( bomb ) {
+                if ( bomb.isAlive && block.contains( bomb ) ) {
+                    bomb.boom();
+                }
+            } );
+
         } );
     };
 
@@ -723,19 +733,19 @@ Bomb.prototype.boom = function () {
       } )
     );
 
-    killPlayer( cursorBlock );
+    boomBlock( cursorBlock );
 
-    for( var d = 0; d < DIRECTION.length; d++ ) {
+    for ( var d = 0; d < DIRECTION.length; d++ ) {
         direction = DIRECTION[d];
         cursorBlock = thisBlock;
         done = false;
 
-        for( var i = 1; i < this.power && !done; i++ ) {
+        for ( var i = 1; i < this.power && !done; i++ ) {
 
             cursorBlock = this.game.getNextBlockAt( cursorBlock.x, cursorBlock.y, direction );
 
-            if( cursorBlock !== undefined ) {
-                killPlayer( cursorBlock );
+            if ( cursorBlock !== undefined ) {
+                boomBlock( cursorBlock );
 
                 done = ( cursorBlock.type != "EMPTY" && cursorBlock.type != "ERROR" );
 
@@ -758,12 +768,12 @@ Bomb.prototype.boom = function () {
     }
 };
 
-Bomb.prototype.update = function ( time ) {
+Bomb.prototype.update = function( time ) {
 };
 
-Bomb.prototype.render = function ( ctx ) {
+Bomb.prototype.render = function( ctx ) {
 
-    if( this.isAlive ) {
+    if ( this.isAlive ) {
         var rotation = -0.8;
 
         ctx.save();
@@ -784,19 +794,19 @@ Bomb.prototype.render = function ( ctx ) {
         ctx.beginPath();
         var arcStart = -Math.PI / 2 + 0.3,
             arcEnd = twoPI - 0.6;
-        ctx.arc( x, y, s, arcStart, ( arcEnd / this.timeout ) * ( Date.now() - this.startTick ) + arcStart );
+        ctx.arc( x, y, s, arcStart, ( arcEnd / this.duration ) * ( Date.now() - this.startTick ) + arcStart );
         ctx.stroke();
 
         ctx.restore();
 
     }
 
-    if( this.fires.length > 0 ) {
+    if ( this.fires.length > 0 ) {
         // render fires
         var f;
-        for( var i = this.fires.length - 1; i >= 0; i-- ) {
+        for ( var i = this.fires.length - 1; i >= 0; i-- ) {
             f = this.fires[i];
-            if( f.isAlive ) {
+            if ( f.isAlive ) {
                 f.render( ctx );
             } else {
                 f = undefined;
@@ -816,14 +826,14 @@ Bomb.prototype.render = function ( ctx ) {
 //############
 var BB = BB || {};
 
-BB.extend = function ( obj, source ) {
+BB.extend = function( obj, source ) {
 
     // based on: https://github.com/mrdoob/three.js/blob/master/src/Three.js
-    if( Object.keys ) {
+    if ( Object.keys ) {
 
         var keys = Object.keys( source );
 
-        for( var i = 0, il = keys.length; i < il; i++ ) {
+        for ( var i = 0, il = keys.length; i < il; i++ ) {
 
             var prop = keys[i];
             Object.defineProperty( obj, prop, Object.getOwnPropertyDescriptor( source, prop ) );
@@ -834,9 +844,9 @@ BB.extend = function ( obj, source ) {
 
         var safeHasOwnProperty = {}.hasOwnProperty;
 
-        for( var prop in source ) {
+        for ( var prop in source ) {
 
-            if( safeHasOwnProperty.call( source, prop ) ) {
+            if ( safeHasOwnProperty.call( source, prop ) ) {
 
                 obj[prop] = source[prop];
 
@@ -858,7 +868,7 @@ BB.DIRECTIONS = ["none", "west", "north", "east", "south"];
 // Prop
 //############
 
-BB.Prop = function ( game, opt ) {
+BB.Prop = function( game, opt ) {
 
     this.game = game;
     Object.extend( this, opt );
@@ -876,7 +886,7 @@ BB.Prop.prototype.color = "#000000";
 
 BB.Prop.prototype.constructor = BB.Prop;
 
-BB.Prop.prototype.render = function ( ctx ) {
+BB.Prop.prototype.render = function( ctx ) {
 
     ctx.fillStyle = "#ff0000";
     ctx.strokeStyle = "#fff";
@@ -903,17 +913,17 @@ BB.Prop.prototype.render = function ( ctx ) {
 // Fire
 //############
 
-BB.Fire = function ( game, opt ) {
+BB.Fire = function( game, opt ) {
 
     BB.Prop.apply( this, arguments );
 
     var sizeGoal = this.size;
     this.size /= 5;
     new TWEEN.Tween( this )
-        .to( { size: sizeGoal }, this.timeout / 20 )
+        .to( { size: sizeGoal }, this.duration / 20 )
         .chain( new TWEEN.Tween( this )
-            .to( { size: this.game.blockSize / 10 }, this.timeout - this.timeout / 20 )
-            .onComplete( function () {
+            .to( { size: this.game.blockSize / 10 }, this.duration - this.duration / 20 )
+            .onComplete( function() {
                 this.isAlive = false;
             } )
         )
@@ -925,12 +935,12 @@ BB.Fire.prototype = Object.create( BB.Prop );
 
 BB.Fire.prototype.color = "#dd0000";
 BB.Fire.prototype.power = 10;
-BB.Fire.prototype.timeout = 1000;
+BB.Fire.prototype.duration = 1000;
 BB.Fire.prototype.isAlive = true;
 
-BB.Fire.prototype.render = function ( ctx ) {
+BB.Fire.prototype.render = function( ctx ) {
 
-    var s = this.size,// - ( Date.now() - this.startTick ) * ( ( this.size - 3 ) / this.timeout ),
+    var s = this.size,// - ( Date.now() - this.startTick ) * ( ( this.size - 3 ) / this.duration ),
         x = this.x,
         y = this.y
     ;
@@ -948,7 +958,7 @@ BB.Fire.prototype.render = function ( ctx ) {
 
 
 
-loop = function () {
+loop = function() {
 
     requestAnimFrame.call( this, loop );
 
