@@ -824,24 +824,24 @@ BB.Bomb.prototype.render = function( ctx ) {
         ctx.translate( this.x, this.y );
         //ctx.rotate( rotation );
 
-        var s = this.size, x = 0, y = 0;
+        var s = this.size, x = 0, y = 0, fuse = s/6;
 
-        ctx.lineWidth = 3;
+        ctx.lineWidth = fuse;
         ctx.strokeStyle = ( Date.now() / 300 % 2 > 1 ) ? "#f40" : "#fa0";
         ctx.fillStyle = this.color;
 
         ctx.beginPath();
-        ctx.arc( x, y, this.size/2, 0, twoPI );
+        ctx.arc( x, y, s/2, 0, twoPI );
         ctx.fill();
 
-        ctx.beginPath();
-        ctx.fillStyle = "#00f";
-        ctx.fillRect( x - s/8, y - s/2 - s/, s / 4, s / 4 );
+        //ctx.beginPath();
+        //ctx.fillStyle = "#00f";
+        ctx.fillRect( x - fuse/2, y - s / 2 - fuse, fuse, fuse );
 
         ctx.beginPath();
         var arcStart = -Math.PI / 2 + 0.2,
-            arcEnd = twoPI - 0.4;
-        ctx.arc( x, y, s/2, arcStart, ( arcEnd / this.duration ) * ( Date.now() - this.startTick ) + arcStart );
+            arcEnd = twoPI - 0.3;
+        ctx.arc( x, y, s / 2 + fuse/2, arcStart, ( arcEnd / this.duration ) * ( Date.now() - this.startTick ) + arcStart );
         ctx.stroke();
 
         ctx.restore();
