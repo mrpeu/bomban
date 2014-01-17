@@ -93,7 +93,7 @@ Game.prototype.init = function() {
         for ( var j = 0; j < this.nbHBlocks; j++ ) {
 
             this.blocks.push(
-              new Block( this, {
+              new BB.Block( this, {
                   x: j * blockSize,
                   y: i * blockSize,
                   size: blockSize,
@@ -124,11 +124,11 @@ Game.prototype.init = function() {
 
     //--------
     // grid
-    this.grid = new Grid( this, { thickness: 1 } );
+    this.grid = new BB.Grid( this, { thickness: 1 } );
 
     //--------
     // input
-    this.input = new Input( this, {} );
+    this.input = new BB.Input( this, {} );
 
 };
 
@@ -141,17 +141,6 @@ Game.prototype.update = function() {
         this.grid.nbHBlocks = this.height / this.blockSize;
     }
 
-    //--------
-    // grid
-    this.grid.update();
-
-    //--------
-    // blocks
-    var allBlocks = this.blocks;
-    for ( var i = 0; i < allBlocks.length; i++ ) {
-        allBlocks[i].update();
-    }
-
 };
 
 Game.prototype.render = function( ctx ) {
@@ -159,13 +148,6 @@ Game.prototype.render = function( ctx ) {
     //--------
     // grid
     this.grid.render( ctx );
-
-    //--------
-    // blocks
-    var allBlocks = this.blocks;
-    for ( var i = 0; i < allBlocks.length; i++ ) {
-        allBlocks[i].render( ctx );
-    }
 
     //--------
     // players
@@ -229,7 +211,6 @@ Game.prototype.makeRoomForPlayer = function( player, nbBlocksToEmpty ) {
         }
 
         bb.type = "EMPTY";
-        bb.setRenderFn();
 
         ba = bb;
 
@@ -238,254 +219,6 @@ Game.prototype.makeRoomForPlayer = function( player, nbBlocksToEmpty ) {
     return player;
 };
 //============
-
-
-
-
-//============
-// Block
-//============
-
-Block = function( game, opt ) {
-    this.game = game;
-    Object.extend( this, opt );
-    this.init();
-};
-
-Block.TYPES = ["MUD", "EMPTY", "ERROR"];
-Block.RenderFns = {
-    "MUD": function() {
-
-        ctx.fillStyle = "#ffa000";
-        //ctx.lineWidth = 1;
-        //ctx.strokeStyle = "#3f2a00";
-
-        var x = this.x, y = this.y, size = this.size;
-        ctx.beginPath();
-        ctx.moveTo( x, y );
-        ctx.lineTo( x + size, y );
-        ctx.lineTo( x + size, y + size );
-        ctx.lineTo( x, y + size );
-        ctx.lineTo( x, y );
-        ctx.closePath();
-        ctx.fill();
-        //ctx.stroke();
-
-        if ( DEBUG ) {
-            ctx.fillStyle = "#fff";
-            ctx.fillText(
-              this.type[0] + this.type[1] + this.type[2], // this.id, 
-              this.x + 3, this.y + 12 );
-            ctx.fillText(
-              this.id,
-              this.x + 3, this.y + 22 );
-        }
-    },
-
-    "EMPTY": function() {
-
-        ctx.fillStyle = "#7f7f7f";
-        //ctx.lineWidth = 1;
-
-        var x = this.x, y = this.y, size = this.size;
-        ctx.fillRect( x, y, size, size );
-
-        if ( DEBUG ) {
-            ctx.fillStyle = "#d0d0d0";
-            ctx.fillText(
-              this.type[0] + this.type[1] + this.type[2], // this.id, 
-              this.x + 3, this.y + 12 );
-            ctx.fillText(
-              this.id,
-              this.x + 3, this.y + 22 );
-        }
-    },
-
-    "ERROR": function() {
-        ctx.fillStyle = "#ff0000";
-        ctx.strokeStyle = "#fff";
-
-        var x = this.x, y = this.y, size = this.size;
-        ctx.fillRect( x, y, size, size );
-        ctx.strokeRect( x, y, size, size );
-
-        ctx.fillStyle = "#fff";
-        ctx.fillText( "ERROR", this.x + 3, this.y + 12 );
-    }
-};
-
-Block.prototype.size = 8;
-Block.prototype.x = 0;
-Block.prototype.y = 0;
-Block.prototype.type = "ERROR";
-
-Block.prototype.setRenderFn = function( renderfn ) {
-    this.render = renderfn || Block.RenderFns[this.type] || this.render;
-};
-Block.all = [];
-
-Block.prototype.init = function() {
-    this.id = Block.all.length;
-    Block.all.push( this );
-    this.setRenderFn();
-};
-
-Block.prototype.update = function() { };
-
-Block.prototype.render = function() {
-
-    ctx.lineWidth = 1;
-    //ctx.strokeStyle = getHSLA( 0, 100, 50, 1 );
-    ctx.fillStyle = getHSLA( 0, 100, 100, 1 );
-
-    var x = this.x, y = this.y, size = this.size;
-
-    ctx.beginPath();
-    ctx.moveTo( x, y );
-    ctx.lineTo( x + size, y );
-    ctx.lineTo( x + size, y + size );
-    ctx.lineTo( x, y + size );
-    ctx.lineTo( x, y );
-    ctx.fill();
-    //ctx.stroke();
-
-    ctx.fillStyle = getHSLA( 0, 0, 100, 0.9 );
-    ctx.fillText( this.id, this.x + 3, this.y + 12 );
-
-};
-
-Block.prototype.empty = function( bomb, power ) {
-    this.type = "EMPTY";
-    this.setRenderFn();
-}
-
-Block.prototype.contains = function( object ) {
-
-    if ( object.x < this.x ) return false;
-    if ( object.y < this.y ) return false;
-    if ( object.x > ( this.x + this.game.blockSize ) ) return false;
-    if ( object.y > ( this.y + this.game.blockSize ) ) return false;
-
-    return true;
-    ;
-}
-//============
-
-
-
-
-//============
-// Grid
-//============
-
-Grid = function( game, opt ) {
-    this.game = game;
-    Object.extend( this, opt );
-    this.init();
-};
-
-Grid.prototype.thickness = 1;
-Grid.prototype.color = "#e2e2e2";
-
-Grid.all = [];
-
-Grid.prototype.init = function() {
-    this.id = Grid.all.length;
-    Grid.all.push( this );
-};
-
-Grid.prototype.update = function( time ) { };
-
-Grid.prototype.render = function( ctx ) {
-
-    if ( this.thickness < 1 ) return;
-
-    ctx.strokeStyle = this.color;
-    ctx.lineWidth = this.thickness;
-
-    var s = this.game.blockSize;
-    var nbWBlocks = this.game.nbWBlocks;
-    var nbHBlocks = this.game.nbHBlocks;
-
-    for ( var i = 0; i < nbWBlocks + 1; i++ ) {
-        ctx.moveTo( 0, i * s );
-        ctx.lineTo( nbWBlocks * s, i * s );
-        ctx.stroke();
-    }
-
-    for ( var i = 0; i < nbHBlocks + 1; i++ ) {
-        ctx.moveTo( i * s, 0 );
-        ctx.lineTo( i * s, nbHBlocks * s );
-        ctx.stroke();
-    }
-
-};
-//============
-
-
-
-
-//============
-// Input
-//============
-
-var Input = function( game, opt ) {
-    this.game = game;
-    Object.extend( this, opt );
-    this.init();
-};
-
-Input.all = [];
-
-Input.prototype.init = function() {
-    this.id = Input.all.length;
-    Input.all.push( this );
-
-    window.addEventListener( 'keydown', this.onKeyDown.bind( this ), false );
-};
-
-Input.prototype.update = function( time ) {
-
-};
-
-Input.prototype.onKeyDown = function( e ) {
-    e = e || window.event;
-
-    switch ( e.keyCode ) {
-        case 37: // left
-            this.game.players[0].moveToward( DIRECTION[0] );
-            e.preventDefault();
-            break;
-
-        case 38: // top
-            this.game.players[0].moveToward( DIRECTION[1] );
-            e.preventDefault();
-            break;
-
-        case 39: // right
-            this.game.players[0].moveToward( DIRECTION[2] );
-            e.preventDefault();
-            break;
-
-        case 40: // bottom
-            this.game.players[0].moveToward( DIRECTION[3] );
-            e.preventDefault();
-            break;
-
-        case 32: // spacebar
-            this.game.players[0].action();
-            e.preventDefault();
-            break;
-
-        default:
-            //console.info(e.keyCode); 
-            break;
-    }
-};
-//============
-
-
-
 
 
 
@@ -504,9 +237,9 @@ var BB = BB || ( function() {
         DIRECTIONS: ["none", "west", "north", "east", "south"],
         RANDOMS: _randoms,
 
-        r: function() { return _randoms[_randomId=(++_randomId)%_randoms.length]; }
+        r: function() { return _randoms[_randomId = ( ++_randomId ) % _randoms.length]; }
     };
-})();
+} )();
 //############
 
 
@@ -551,6 +284,107 @@ BB.Prop.prototype.render = function( ctx ) {
     ctx.fillText( "ERROR", this.x + 3, this.y + 12 );
 
 };
+//############
+
+
+
+//############
+// Block
+//############
+BB.Block = function( game, opt ) {
+
+    BB.Prop.apply( this, arguments );
+
+};
+BB.Block.prototype.constructor = BB.Block;
+BB.Block.prototype = Object.create( BB.Prop.prototype );
+
+BB.Block.TYPES = ["ERROR", "MUD", "EMPTY"];
+BB.Block.RenderFns = {
+    "MUD": function( ctx ) {
+
+        ctx.fillStyle = "#ffa000";
+        //ctx.lineWidth = 1;
+        //ctx.strokeStyle = "#3f2a00";
+
+        var x = this.x, y = this.y, size = this.size;
+        ctx.beginPath();
+        ctx.moveTo( x, y );
+        ctx.lineTo( x + size, y );
+        ctx.lineTo( x + size, y + size );
+        ctx.lineTo( x, y + size );
+        ctx.lineTo( x, y );
+        ctx.closePath();
+        ctx.fill();
+        //ctx.stroke();
+
+        if ( DEBUG ) {
+            ctx.fillStyle = "#fff";
+            ctx.fillText(
+              this.type[0] + this.type[1] + this.type[2], // this.id, 
+              this.x + 3, this.y + 12 );
+            ctx.fillText(
+              this.id,
+              this.x + 3, this.y + 22 );
+        }
+    },
+    "EMPTY": function( ctx ) {
+        
+        ctx.fillStyle = "#7f7f7f";
+        //ctx.lineWidth = 1;
+
+        var x = this.x, y = this.y, size = this.size;
+        ctx.fillRect( x, y, size, size );
+
+        if ( DEBUG ) {
+            ctx.fillStyle = "#d0d0d0";
+            ctx.fillText(
+              this.type[0] + this.type[1] + this.type[2], // this.id, 
+              this.x + 3, this.y + 12 );
+            ctx.fillText(
+              this.id,
+              this.x + 3, this.y + 22 );
+        }
+    },
+    "ERROR": function( ctx ) {
+        ctx.fillStyle = "#ff0000";
+        ctx.strokeStyle = "#fff";
+
+        var x = this.x, y = this.y, size = this.size;
+        ctx.fillRect( x, y, size, size );
+        ctx.strokeRect( x, y, size, size );
+
+        ctx.fillStyle = "#fff";
+        ctx.fillText( "ERROR", this.x + 3, this.y + 12 );
+    }
+};
+
+BB.Block.prototype.type = BB.Block.TYPES[0];
+
+BB.Block.prototype.render = function() {
+
+    if ( BB.Block.RenderFns.hasOwnProperty( this.type ) ) {
+        BB.Block.RenderFns[this.type].call( this, ctx );
+    }
+    else {
+        BB.Block.RenderFns["ERROR"].call( this, ctx );
+    }
+};
+ 
+BB.Block.prototype.empty = function( bomb, power ) {
+    this.type = "EMPTY";
+}
+
+BB.Block.prototype.contains = function( object ) {
+
+    if ( object.x < this.x ) return false;
+    if ( object.y < this.y ) return false;
+    if ( object.x > ( this.x + this.game.blockSize ) ) return false;
+    if ( object.y > ( this.y + this.game.blockSize ) ) return false;
+
+    return true;
+    ;
+}
 //############
 
 
@@ -699,13 +533,13 @@ BB.Fire = function( game, opt ) {
         var sparkles = [];
         while ( BB.r() < this.sparklesChances ) {
             //sparkles.push(
-                new BB.Fire( game, {
-                    x: this.x + BB.r() * game.blockSize - game.blockSize / 2, y: this.y + BB.r() * game.blockSize - game.blockSize / 2,
-                    color: getHSLA( BB.r()*60, 100, 50, BB.r()*50+50),
-                    duration: BB.r() * this.duration / 2,
-                    delay: BB.r() * this.duration / 3,
-                    size: this.size * BB.r()
-                } )
+            new BB.Fire( game, {
+                x: this.x + BB.r() * game.blockSize - game.blockSize / 2, y: this.y + BB.r() * game.blockSize - game.blockSize / 2,
+                color: getHSLA( BB.r() * 60, 100, 50, BB.r() * 100 - 10 ),
+                duration: BB.r() * this.duration / 2,
+                delay: BB.r() * this.duration / 3,
+                size: this.size * BB.r()
+            } )
             //);
         }
         //console.table( sparkles );
@@ -759,6 +593,105 @@ BB.Fire.prototype.render = function( ctx ) {
 
     //ctx.fillStyle = "#fff";
     //ctx.fillText( this.id, this.x + 3, this.y + 12 );
+};
+//############
+
+
+//############
+// Grid
+//############
+BB.Grid = function( game, opt ) {
+    this.game = game;
+    Object.extend( this, opt );
+
+    this.id = BB.Grid.ALL.length;
+    BB.Grid.ALL.push( this );
+};
+BB.Grid.ALL = [];
+BB.Grid.prototype.constructor = BB.Grid;
+BB.Grid.prototype = {
+    color: "#ededed",
+    thickness: 0
+};
+
+BB.Grid.prototype.render = function( ctx ) {
+
+    if ( this.thickness < 1 ) return;
+
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = this.thickness;
+
+    var s = this.game.blockSize;
+    var nbWBlocks = this.game.nbWBlocks;
+    var nbHBlocks = this.game.nbHBlocks;
+
+    for ( var i = 0; i < nbWBlocks + 1; i++ ) {
+        ctx.moveTo( 0, i * s );
+        ctx.lineTo( nbWBlocks * s, i * s );
+        ctx.stroke();
+    }
+
+    for ( var i = 0; i < nbHBlocks + 1; i++ ) {
+        ctx.moveTo( i * s, 0 );
+        ctx.lineTo( i * s, nbHBlocks * s );
+        ctx.stroke();
+    }
+};
+//############
+
+
+//############
+// Input
+//############
+BB.Input = function( game, opt ) {
+    this.game = game;
+    Object.extend( this, opt );
+
+    this.id = BB.Input.ALL.length;
+    BB.Input.ALL.push( this );
+
+    window.addEventListener( 'keydown', this.onKeyDown.bind( this ), false );
+};
+BB.Input.prototype.constructor = BB.Input;
+BB.Input.ALL = [];
+BB.Input.prototype = {
+    id: -1,
+    game: undefined
+};
+
+BB.Input.prototype.onKeyDown = function( e ) {
+    e = e || window.event;
+
+    switch ( e.keyCode ) {
+        case 37: // left
+            this.game.players[0].moveToward( DIRECTION[0] );
+            e.preventDefault();
+            break;
+
+        case 38: // top
+            this.game.players[0].moveToward( DIRECTION[1] );
+            e.preventDefault();
+            break;
+
+        case 39: // right
+            this.game.players[0].moveToward( DIRECTION[2] );
+            e.preventDefault();
+            break;
+
+        case 40: // bottom
+            this.game.players[0].moveToward( DIRECTION[3] );
+            e.preventDefault();
+            break;
+
+        case 32: // spacebar
+            this.game.players[0].action();
+            e.preventDefault();
+            break;
+
+        default:
+            //console.info(e.keyCode); 
+            break;
+    }
 };
 //############
 
