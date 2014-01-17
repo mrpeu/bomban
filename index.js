@@ -76,10 +76,10 @@ Game = function( opt ) {
 };
 
 Game.prototype.blockSize = 32;
-Game.prototype.players = [];
 Game.prototype.blocks = [];
 Game.prototype.grid = undefined;
 Game.prototype.props = [];
+Game.prototype.players = [];
 
 Game.prototype.init = function() {
 
@@ -106,8 +106,8 @@ Game.prototype.init = function() {
     //--------
     // players
     this.players.push(
-      this.makeRoomForPlayer( new Player( this, {
-          color: getHSLA( 120, 100, 50, 0.9 ),
+      this.makeRoomForPlayer( new BB.Player( this, {
+          color: "#0f0",
           x: blockSize / 2, y: blockSize / 2,
           size: 21
       } ), 4 )
@@ -120,7 +120,7 @@ Game.prototype.init = function() {
     //   }), 4 )
     // );
 
-    this.player = this.players[0];
+
 
     //--------
     // grid
@@ -152,13 +152,6 @@ Game.prototype.update = function() {
         allBlocks[i].update();
     }
 
-    //--------
-    // players
-    var allPlayers = this.players;
-    for ( var i = 0; i < allPlayers.length; i++ ) {
-        allPlayers[i].update( ctx );
-    }
-
 };
 
 Game.prototype.render = function( ctx ) {
@@ -180,6 +173,14 @@ Game.prototype.render = function( ctx ) {
     for ( var i = 0; i < allPlayers.length; i++ ) {
         allPlayers[i].render( ctx );
     }
+
+    //--------
+    // BB.Prop
+    BB.Prop.ALL.forEach( function( prop ) {
+        if ( prop != undefined && prop.isAlive ) {
+            prop.render( ctx );
+        }
+    } );
 };
 
 Game.prototype.getBlock = function( posX, posY ) {
@@ -452,27 +453,27 @@ Input.prototype.onKeyDown = function( e ) {
 
     switch ( e.keyCode ) {
         case 37: // left
-            this.game.player.moveToward( DIRECTION[0] );
+            this.game.players[0].moveToward( DIRECTION[0] );
             e.preventDefault();
             break;
 
         case 38: // top
-            this.game.player.moveToward( DIRECTION[1] );
+            this.game.players[0].moveToward( DIRECTION[1] );
             e.preventDefault();
             break;
 
         case 39: // right
-            this.game.player.moveToward( DIRECTION[2] );
+            this.game.players[0].moveToward( DIRECTION[2] );
             e.preventDefault();
             break;
 
         case 40: // bottom
-            this.game.player.moveToward( DIRECTION[3] );
+            this.game.players[0].moveToward( DIRECTION[3] );
             e.preventDefault();
             break;
 
         case 32: // spacebar
-            this.game.player.action();
+            this.game.players[0].action();
             e.preventDefault();
             break;
 
@@ -486,83 +487,304 @@ Input.prototype.onKeyDown = function( e ) {
 
 
 
-//============
-// Player
-//============
 
-var Player = function( game, opt ) {
+
+
+
+//############
+// BeamBoom
+//############
+var BB = BB || ( function() {
+    var _randomId = 0;
+    var _randoms = [];
+
+    for ( var i = 0; i < 500; i++ ) _randoms.push( Math.random() );
+
+    return {
+        DIRECTIONS: ["none", "west", "north", "east", "south"],
+        RANDOMS: _randoms,
+
+        r: function() { return _randoms[_randomId=(++_randomId)%_randoms.length]; }
+    };
+})();
+//############
+
+
+//############
+// Prop
+//############
+BB.Prop = function( game, opt ) {
+
     this.game = game;
     Object.extend( this, opt );
-    this.init();
+
+    this.id = BB.Prop.ALL.length;
+    BB.Prop.ALL.push( this );
+};
+BB.Prop.prototype.constructor = BB.Prop;
+
+BB.Prop.ALL = [];
+BB.Prop.prototype.id = 0;
+BB.Prop.prototype.x = 0;
+BB.Prop.prototype.y = 0;
+BB.Prop.prototype.size = 16;
+BB.Prop.prototype.direction = BB.DIRECTIONS[0];
+BB.Prop.prototype.color = "#000000";
+BB.Prop.prototype.isAlive = true;
+
+BB.Prop.prototype.render = function( ctx ) {
+
+    ctx.fillStyle = "#ff0000";
+    ctx.strokeStyle = "#fff";
+
+    var x = this.x, y = this.y, size = this.size;
+    ctx.beginPath();
+    ctx.moveTo( x, y );
+    ctx.lineTo( x + size, y );
+    ctx.lineTo( x + size, y + size );
+    ctx.lineTo( x, y + size );
+    ctx.lineTo( x, y );
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#fff";
+    ctx.fillText( "ERROR", this.x + 3, this.y + 12 );
+
+};
+//############
+
+
+//############
+// Bomb
+//############
+BB.Bomb = function( game, opt ) {
+
+    BB.Prop.apply( this, arguments );
+
+    this.timeoutID = window.setTimeout(
+      this.boom.bind( this ),
+      this.duration || 1000
+    );
+
+    // temporary
+    this.startTick = Date.now();
+    this.lastHue = 1;
+};
+BB.Bomb.prototype.constructor = BB.Bomb;
+BB.Bomb.prototype = Object.create( BB.Prop.prototype );
+
+BB.Bomb.prototype.color = "#000000";
+BB.Bomb.prototype.colorBorder = "#ffff00";
+BB.Bomb.prototype.power = 3; // how far(nb blocks) can it blow up
+BB.Bomb.prototype.duration = 2000;
+BB.Bomb.prototype.player = undefined;
+BB.Bomb.prototype.timeoutID = undefined;
+BB.Bomb.prototype.fires = [];
+
+BB.Bomb.prototype.boom = function() {
+    this.isAlive = false;
+    window.clearTimeout( this.timeoutID );
+    this.timeoutID = undefined;
+
+    var thisBlock = this.game.getBlockAt( this.x, this.y );
+    var hbs = game.blockSize / 2;
+    var cursorBlock = thisBlock, done = false, direction;
+
+    var boomBlock = function( block ) {
+        this.game.players.forEach( function( player ) {
+
+            if ( block.contains( player ) ) {
+                player.health--;
+            }
+
+            player.bombs.forEach( function( bomb ) {
+                if ( bomb.isAlive && block.contains( bomb ) ) {
+                    bomb.boom();
+                }
+            } );
+
+        } );
+    };
+
+    this.fires.push(
+      new BB.Fire( this.game, {
+          x: cursorBlock.x + hbs,
+          y: cursorBlock.y + hbs,
+          power: this.power,
+          size: hbs,
+          sparklesChances: .8
+      } )
+    );
+
+    boomBlock( cursorBlock );
+
+    for ( var d = 0; d < DIRECTION.length; d++ ) {
+        direction = DIRECTION[d];
+        cursorBlock = thisBlock;
+        done = false;
+
+        for ( var i = 1; i < this.power && !done; i++ ) {
+
+            cursorBlock = this.game.getNextBlockAt( cursorBlock.x, cursorBlock.y, direction );
+
+            if ( cursorBlock !== undefined ) {
+                boomBlock( cursorBlock );
+
+                done = ( cursorBlock.type != "EMPTY" && cursorBlock.type != "ERROR" );
+
+                cursorBlock.empty();
+
+                this.fires.push(
+                  new BB.Fire( this.game, {
+                      x: cursorBlock.x + hbs,
+                      y: cursorBlock.y + hbs,
+                      power: this.power - i,
+                      size: hbs,
+                      sparklesChances: .3
+                  } )
+                );
+            }
+            else {
+                done = true;
+            }
+
+        }
+    }
 };
 
-Player.prototype.size = 16;
-Player.prototype.health = 1;
-Player.prototype.x = 0;
-Player.prototype.y = 0;
-Player.prototype._x = 0; // target x when this._tweenMove is going on
-Player.prototype._y = 0;
-Player.prototype._tweenMove = [];
-Player.prototype.direction = "ERROR";
-Player.prototype.color = "#fff";
-Player.prototype.bombs = [];
-Player.prototype.isAlive = true;
+BB.Bomb.prototype.render = function( ctx ) {
 
-Player.all = [];
+    if ( this.isAlive ) {
+        var rotation = -0.8;
 
-Player.prototype.init = function() {
-    this.id = Player.all.length;
-    Player.all.push( this );
+        ctx.save();
+        ctx.translate( this.x, this.y );
+        //ctx.rotate( rotation );
+
+        var s = this.size, x = 0, y = 0, fuse = s / 6;
+
+        ctx.lineWidth = fuse;
+        ctx.strokeStyle = ( Date.now() / 300 % 2 > 1 ) ? "#f40" : "#fa0";
+        ctx.fillStyle = this.color;
+
+        ctx.beginPath();
+        ctx.arc( x, y, s / 2, 0, twoPI );
+        ctx.fill();
+
+        //ctx.beginPath();
+        //ctx.fillStyle = "#00f";
+        ctx.fillRect( x - fuse / 2, y - s / 2 - fuse, fuse, fuse );
+
+        ctx.beginPath();
+        var arcStart = -Math.PI / 2 + 0.2,
+            arcEnd = twoPI - 0.3;
+        ctx.arc( x, y, s / 2 + fuse / 2, arcStart, ( arcEnd / this.duration ) * ( Date.now() - this.startTick ) + arcStart );
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
 };
+//############
 
-Player.prototype.update = function( time ) {
 
-    if ( this.health <= 0 ) this.isAlive = false;
-};
+//############
+// Fire
+//############
+BB.Fire = function( game, opt ) {
 
-Player.prototype.render = function( ctx ) {
+    BB.Prop.apply( this, arguments );
 
-    var x = this.x, y = this.y, s = this.size, hs = this.size / 2;
-
-    ctx.save();
-    if ( !this.isAlive ) ctx.globalAlpha = 0.75;
-
-    ctx.translate( x, y );
-
-    switch ( this.direction ) {
-        case "west": ctx.rotate( deg2rad * 90 ); break;
-        case "east": ctx.rotate( deg2rad * -90 ); break;
-        case "north": ctx.rotate( deg2rad * 180 ); break;
-        case "south": default: break;
+    if ( this.sparklesChances > 0 ) {
+        var sparkles = [];
+        while ( BB.r() < this.sparklesChances ) {
+            //sparkles.push(
+                new BB.Fire( game, {
+                    x: this.x + BB.r() * game.blockSize - game.blockSize / 2, y: this.y + BB.r() * game.blockSize - game.blockSize / 2,
+                    color: getHSLA( BB.r()*60, 100, 50, BB.r()*50+50),
+                    duration: BB.r() * this.duration / 2,
+                    delay: BB.r() * this.duration / 3,
+                    size: this.size * BB.r()
+                } )
+            //);
+        }
+        //console.table( sparkles );
     }
 
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = ctx.fillStyle = this.color;
-
-    ctx.beginPath();
-    ctx.moveTo( -hs, -hs );
-    ctx.lineTo( +hs, -hs );
-    ctx.lineTo( 0, +hs );
-    ctx.lineTo( -hs, -hs );
-    ctx[this.isAlive ? "fill" : "stroke"]();
-
-    ctx.restore();
-
-
-    // render bombs
-    //for ( var i = this.bombs.length - 1, b = this.bombs[i]; i >= 0; i-- ) {
-    //  b.render( ctx );
-    //}
-    this.bombs.forEach( function( b ) { b.render( ctx ); } );
 };
+BB.Fire.prototype.constructor = BB.Fire;
+BB.Fire.prototype = Object.create( BB.Prop.prototype );
 
-Player.prototype.canMoveForward = function() {
+BB.Fire.prototype.color = "#dd0000";
+BB.Fire.prototype.power = 10;
+BB.Fire.prototype.duration = 1000;
+BB.Fire.prototype.delay = 0;
+BB.Fire.prototype._tween = undefined;
+BB.Fire.prototype.sparklesChances = 0;
+
+BB.Fire.prototype.render = function( ctx ) {
+
+    if ( !this.isAlive ) return;
+
+    if ( this._tween == undefined ) {
+
+        ( function() {
+            var sizeGoal = this.size;
+            this.size /= 5;
+
+            this._tween =
+                new TWEEN.Tween( this )
+                    .to( { size: sizeGoal }, this.duration / 20 )
+                    .chain( new TWEEN.Tween( this )
+                        .to( { size: this.game.blockSize / 10 }, this.duration - this.duration / 20 )
+                        .onComplete( function() {
+                            this.isAlive = false;
+                        } )
+                    )
+                .delay( this.delay )
+                .start()
+            ;
+        } ).call( this );
+    }
+
+    var s = this.size,// - ( Date.now() - this.startTick ) * ( ( this.size - 3 ) / this.duration ),
+        x = this.x,
+        y = this.y
+    ;
+
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc( x, y, s, 0, twoPI );
+    ctx.fill();
+
+    //ctx.fillStyle = "#fff";
+    //ctx.fillText( this.id, this.x + 3, this.y + 12 );
+};
+//############
+
+
+//############
+// Player
+//############
+BB.Player = function( game, opt ) { BB.Prop.apply( this, arguments ); };
+
+BB.Player.prototype.constructor = BB.Player;
+BB.Player.prototype = Object.create( BB.Prop.prototype );
+
+BB.Player.prototype.color = "#00dd00";
+BB.Player.prototype.health = 1;
+BB.Player.prototype._x = 0; // target x when this._tweenMove is going on
+BB.Player.prototype._y = 0;
+BB.Player.prototype._tweenMove = [];
+BB.Player.prototype.bombs = [];
+
+BB.Player.prototype.canMoveForward = function() {
     if ( this.health <= 0 ) return false;
     var b = this.game.getNextBlockAt(( this._x || this.x ), ( this._y || this.y ), this.direction );
     return b != undefined && b.type == "EMPTY";
 };
 
-Player.prototype.moveToward = function( direction ) {
+BB.Player.prototype.moveToward = function( direction ) {
     if ( this.health <= 0 ) return false;
 
     if ( this.direction != direction ) {
@@ -574,7 +796,7 @@ Player.prototype.moveToward = function( direction ) {
         this.moveForward();
 };
 
-Player.prototype.moveForward = function() {
+BB.Player.prototype.moveForward = function() {
 
     switch ( this.direction ) {
         case DIRECTION[0]: // left
@@ -598,13 +820,13 @@ Player.prototype.moveForward = function() {
 
 };
 
-Player.prototype.tweenMoveTo = function( x, y ) {
+BB.Player.prototype.tweenMoveTo = function( x, y ) {
 
     var animTime = 75 / ( this._tweenMove.length || 1 );
 
     var me = this;
 
-    var newTweenMove = new TWEEN.Tween( { x: this.x, y: this.y })
+    var newTweenMove = new TWEEN.Tween( { x: this.x, y: this.y } )
         .easing( TWEEN.Easing.Quadratic.Out )
         .to( { x: x, y: y }, animTime )
         .onUpdate( function( t ) { me.x = this.x; me.y = this.y; } )
@@ -633,303 +855,49 @@ Player.prototype.tweenMoveTo = function( x, y ) {
     this._y = y;
 }
 
-Player.prototype.action = function() {
+BB.Player.prototype.action = function() {
 
     this.bombs.push(
       new BB.Bomb( this.game, {
           player: this,
-          size: this.game.blockSize/2,
+          size: this.game.blockSize / 2,
           x: this.x,
           y: this.y
       } )
     );
 
 };
-//============
 
+BB.Player.prototype.render = function( ctx ) {
 
+    if ( this.health <= 0 ) this.isAlive = false;
 
+    var x = this.x, y = this.y, s = this.size, hs = this.size / 2;
 
+    ctx.save();
+    if ( !this.isAlive ) ctx.globalAlpha = 0.75;
 
+    ctx.translate( x, y );
 
-
-//############
-// BeamBoom
-//############
-var BB = BB || {};
-
-BB.extend = function( obj, source ) {
-
-    // based on: https://github.com/mrdoob/three.js/blob/master/src/Three.js
-    if ( Object.keys ) {
-
-        var keys = Object.keys( source );
-
-        for ( var i = 0, il = keys.length; i < il; i++ ) {
-
-            var prop = keys[i];
-            Object.defineProperty( obj, prop, Object.getOwnPropertyDescriptor( source, prop ) );
-
-        }
-
-    } else {
-
-        var safeHasOwnProperty = {}.hasOwnProperty;
-
-        for ( var prop in source ) {
-
-            if ( safeHasOwnProperty.call( source, prop ) ) {
-
-                obj[prop] = source[prop];
-
-            }
-
-        }
-
+    switch ( this.direction ) {
+        case "west": ctx.rotate( deg2rad * 90 ); break;
+        case "east": ctx.rotate( deg2rad * -90 ); break;
+        case "north": ctx.rotate( deg2rad * 180 ); break;
+        case "south": default: break;
     }
 
-    return obj;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = ctx.fillStyle = this.color;
 
-};
-
-BB.DIRECTIONS = ["none", "west", "north", "east", "south"];
-//############
-
-
-//############
-// Prop
-//############
-
-BB.Prop = function( game, opt ) {
-
-    this.game = game;
-    Object.extend( this, opt );
-
-    this.id = BB.Prop.prototype.idCount++;
-}
-
-BB.Prop.prototype.id = 0;
-BB.Prop.prototype.idCount = 0;
-BB.Prop.prototype.x = 0;
-BB.Prop.prototype.y = 0;
-BB.Prop.prototype.size = 16;
-BB.Prop.prototype.direction = BB.DIRECTIONS[0];
-BB.Prop.prototype.color = "#000000";
-
-BB.Prop.prototype.constructor = BB.Prop;
-
-BB.Prop.prototype.render = function( ctx ) {
-
-    ctx.fillStyle = "#ff0000";
-    ctx.strokeStyle = "#fff";
-
-    var x = this.x, y = this.y, size = this.size;
     ctx.beginPath();
-    ctx.moveTo( x, y );
-    ctx.lineTo( x + size, y );
-    ctx.lineTo( x + size, y + size );
-    ctx.lineTo( x, y + size );
-    ctx.lineTo( x, y );
-    ctx.fill();
-    ctx.stroke();
+    ctx.moveTo( -hs, -hs );
+    ctx.lineTo( +hs, -hs );
+    ctx.lineTo( 0, +hs );
+    ctx.lineTo( -hs, -hs );
+    ctx[this.isAlive ? "fill" : "stroke"]();
 
-    ctx.fillStyle = "#fff";
-    ctx.fillText( "ERROR", this.x + 3, this.y + 12 );
+    ctx.restore();
 
-};
-
-//############
-
-
-//############
-// Fire
-//############
-
-BB.Fire = function( game, opt ) {
-
-    BB.Prop.apply( this, arguments );
-
-    var sizeGoal = this.size;
-    this.size /= 5;
-    new TWEEN.Tween( this )
-        .to( { size: sizeGoal }, this.duration / 20 )
-        .chain( new TWEEN.Tween( this )
-            .to( { size: this.game.blockSize / 10 }, this.duration - this.duration / 20 )
-            .onComplete( function() {
-                this.isAlive = false;
-            } )
-        )
-        .start()
-    ;
-};
-
-BB.Fire.prototype = Object.create( BB.Prop );
-
-BB.Fire.prototype.color = "#dd0000";
-BB.Fire.prototype.power = 10;
-BB.Fire.prototype.duration = 1000;
-BB.Fire.prototype.isAlive = true;
-
-BB.Fire.prototype.render = function( ctx ) {
-
-    var s = this.size,// - ( Date.now() - this.startTick ) * ( ( this.size - 3 ) / this.duration ),
-        x = this.x,
-        y = this.y
-    ;
-
-    ctx.fillStyle = this.color;
-    ctx.beginPath();
-    ctx.arc( x, y, s, 0, twoPI );
-    ctx.fill();
-};
-//############
-
-
-//############
-// Bomb
-//############
-
-BB.Bomb = function( game, opt ) {
-
-    BB.Prop.apply( this, arguments );
-
-    this.timeoutID = window.setTimeout(
-      this.boom.bind( this ),
-      this.duration || 1000
-    );
-
-    // temporary
-    this.startTick = Date.now();
-    this.lastHue = 1;
-};
-
-BB.Bomb.prototype = Object.create( BB.Prop );
-
-BB.Bomb.prototype.color = "#000000";
-BB.Bomb.prototype.colorBorder = "#ffff00";
-BB.Bomb.prototype.power = 3; // how far(nb blocks) can it blow up
-BB.Bomb.prototype.duration = 2000;
-BB.Bomb.prototype.isAlive = true;
-BB.Bomb.prototype.player = undefined;
-BB.Bomb.prototype.timeoutID = undefined;
-BB.Bomb.prototype.fires = [];
-
-
-BB.Bomb.prototype.render = function( ctx ) {
-
-    if ( this.isAlive ) {
-        var rotation = -0.8;
-
-        ctx.save();
-        ctx.translate( this.x, this.y );
-        //ctx.rotate( rotation );
-
-        var s = this.size, x = 0, y = 0, fuse = s/6;
-
-        ctx.lineWidth = fuse;
-        ctx.strokeStyle = ( Date.now() / 300 % 2 > 1 ) ? "#f40" : "#fa0";
-        ctx.fillStyle = this.color;
-
-        ctx.beginPath();
-        ctx.arc( x, y, s/2, 0, twoPI );
-        ctx.fill();
-
-        //ctx.beginPath();
-        //ctx.fillStyle = "#00f";
-        ctx.fillRect( x - fuse/2, y - s / 2 - fuse, fuse, fuse );
-
-        ctx.beginPath();
-        var arcStart = -Math.PI / 2 + 0.2,
-            arcEnd = twoPI - 0.3;
-        ctx.arc( x, y, s / 2 + fuse/2, arcStart, ( arcEnd / this.duration ) * ( Date.now() - this.startTick ) + arcStart );
-        ctx.stroke();
-
-        ctx.restore();
-
-    }
-
-    if ( this.fires.length > 0 ) {
-        // render fires
-        var f;
-        for ( var i = this.fires.length - 1; i >= 0; i-- ) {
-            f = this.fires[i];
-            if ( f.isAlive ) {
-                f.render( ctx );
-            } else {
-                f = undefined;
-            }
-        }
-        this.fires.clean();
-    }
-};
-
-BB.Bomb.prototype.boom = function() {
-    this.isAlive = false;
-    window.clearTimeout( this.timeoutID );
-    this.timeoutID = undefined;
-
-    var thisBlock = this.game.getBlockAt( this.x, this.y );
-    var hbs = game.blockSize / 2;
-    var cursorBlock = thisBlock, done = false, direction;
-
-    var boomBlock = function( block ) {
-        Player.all.forEach( function( player ) {
-
-            if ( block.contains( player ) ) {
-                player.health--;
-            }
-
-            player.bombs.forEach( function( bomb ) {
-                if ( bomb.isAlive && block.contains( bomb ) ) {
-                    bomb.boom();
-                }
-            } );
-
-        } );
-    };
-
-    this.fires.push(
-      new BB.Fire( this.game, {
-          x: cursorBlock.x + hbs,
-          y: cursorBlock.y + hbs,
-          power: this.power,
-          size: hbs
-      } )
-    );
-
-    boomBlock( cursorBlock );
-
-    for ( var d = 0; d < DIRECTION.length; d++ ) {
-        direction = DIRECTION[d];
-        cursorBlock = thisBlock;
-        done = false;
-
-        for ( var i = 1; i < this.power && !done; i++ ) {
-
-            cursorBlock = this.game.getNextBlockAt( cursorBlock.x, cursorBlock.y, direction );
-
-            if ( cursorBlock !== undefined ) {
-                boomBlock( cursorBlock );
-
-                done = ( cursorBlock.type != "EMPTY" && cursorBlock.type != "ERROR" );
-
-                cursorBlock.empty();
-
-                this.fires.push(
-                  new BB.Fire( this.game, {
-                      x: cursorBlock.x + hbs,
-                      y: cursorBlock.y + hbs,
-                      power: this.power - i,
-                      size: hbs
-                  } )
-                );
-            }
-            else {
-                done = true;
-            }
-
-        }
-    }
 };
 //############
 
