@@ -46,23 +46,29 @@ Array.prototype.clean = function( deleteValue ) {
 Game = function( opt ) {
     Object.extend( this, opt );
 
+    Game.instance = this;
+
     var canvasEl = this.ctx.canvas;
 
-    window.resize = function() {
-        canvasEl.width = canvasEl.offsetWidth;
-        canvasEl.height = canvasEl.offsetHeight;
-    };
+    window.addEventListener( "re_size", function() {
+        var game = Game.instance,
+            canvasEl = game.ctx.canvas;
+        game.width = canvasEl.width = canvasEl.offsetWidth;
+        game.height = canvasEl.height = canvasEl.offsetHeight;
+        game.blockSize = Math.floor( game.width / game.nbWBlocks );
+    }, false );
 
-    window.resize();
+    this.width = canvasEl.width = canvasEl.offsetWidth;
+    this.height = canvasEl.height = canvasEl.offsetHeight;
 
-    this.width = canvasEl.width;
-    this.height = canvasEl.height;
-    this.nbWBlocks = Math.floor( this.width / this.blockSize );
-    this.nbHBlocks = Math.floor( this.height / this.blockSize );
+    // make it square
+    this.nbHBlocks = this.nbWBlocks;
+    this.blockSize = Math.floor( this.width / this.nbWBlocks );
 
     this.init();
 
 };
+Game.instance = undefined;
 
 Game.prototype.blockSize = 32;
 Game.prototype.blocks = [];
@@ -85,7 +91,6 @@ Game.prototype.init = function() {
               new BB.Block( this, {
                   x: j * blockSize,
                   y: i * blockSize,
-                  size: blockSize,
                   type: ( Math.random() > ratioEmptyBlocks ) ? "EMPTY" : "MUD"
               } )
             );
@@ -135,8 +140,7 @@ Game.prototype.init = function() {
     this.players.push(
       makeRoomForPlayer.call( this, new BB.Player( this, {
           color: "#0f0",
-          x: blockSize / 2, y: blockSize / 2,
-          size: 21
+          x: blockSize / 2, y: blockSize / 2
       } ), 4 )
     );
 
@@ -151,7 +155,7 @@ Game.prototype.init = function() {
 
     //--------
     // grid
-    this.grid = new BB.Grid( this, { thickness: 1 } );
+    this.grid = new BB.Grid( this, { thickness: 1, color: '#fff' } );
 
     //--------
     // input
@@ -161,12 +165,14 @@ Game.prototype.init = function() {
 
 Game.prototype.render = function() {
 
-    if( this.ctx.canvas.width != this.width || this.ctx.canvas.height != this.height ) {
-        this.width = canvasEl.width;
-        this.height = canvasEl.height;
+    if( this.ctx.canvas.offsetWidth != this.width || this.ctx.canvas.offsetHeight != this.height ) {
+        this.width = this.ctx.canvas.offsetWidth;
+        this.height = this.ctx.canvas.offsetHeight;
         this.grid.nbWBlocks = this.width / this.blockSize;
         this.grid.nbHBlocks = this.height / this.blockSize;
     }
+
+    this.ctx.clearRect( 0, 0, this.width, this.height );
 
     //--------
     // grid
@@ -236,6 +242,9 @@ BB.Prop = function( game, opt ) {
     this.game = game;
     Object.extend( this, opt );
 
+    this.blockSize = this.blockSize || this.game.blockSize;
+    this._size = this.size * this.blockSize;
+
     this.id = BB.Prop.ALL.length;
     BB.Prop.ALL.push( this );
 };
@@ -245,7 +254,9 @@ BB.Prop.ALL = [];
 BB.Prop.prototype.id = 0;
 BB.Prop.prototype.x = 0;
 BB.Prop.prototype.y = 0;
-BB.Prop.prototype.size = 16;
+BB.Prop.blockSize = 16;
+BB.Prop.prototype.size = 1;
+BB.Prop.prototype._size = 1;
 BB.Prop.prototype.direction = BB.DIRECTIONS[0];
 BB.Prop.prototype.color = "#000000";
 BB.Prop.prototype.isAlive = true;
@@ -255,12 +266,12 @@ BB.Prop.prototype.render = function( ctx ) {
     ctx.fillStyle = "#ff0000";
     ctx.strokeStyle = "#fff";
 
-    var x = this.x, y = this.y, size = this.size;
+    var x = this.x, y = this.y, _size = this._size;
     ctx.beginPath();
     ctx.moveTo( x, y );
-    ctx.lineTo( x + size, y );
-    ctx.lineTo( x + size, y + size );
-    ctx.lineTo( x, y + size );
+    ctx.lineTo( x + _size, y );
+    ctx.lineTo( x + _size, y + _size );
+    ctx.lineTo( x, y + _size );
     ctx.lineTo( x, y );
     ctx.fill();
     ctx.stroke();
@@ -289,24 +300,29 @@ BB.Block.RenderFns = {
     "MUD": function( ctx ) {
 
         ctx.fillStyle = "#ffa000";
-        //ctx.lineWidth = 1;
-        //ctx.strokeStyle = "#3f2a00";
 
-        var x = this.x, y = this.y, size = this.size;
+        var x = this.x, y = this.y, _size = this._size;
         ctx.beginPath();
         ctx.moveTo( x, y );
-        ctx.lineTo( x + size, y );
-        ctx.lineTo( x + size, y + size );
-        ctx.lineTo( x, y + size );
+        ctx.lineTo( x + _size, y );
+        ctx.lineTo( x + _size, y + _size );
+        ctx.lineTo( x, y + _size );
         ctx.lineTo( x, y );
         ctx.closePath();
         ctx.fill();
-        //ctx.stroke();
+
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "#ef9000";
+        ctx.beginPath();
+        ctx.moveTo( x + _size, y );
+        ctx.lineTo( x + _size, y + _size );
+        ctx.lineTo( x, y + _size );
+        ctx.stroke();
 
         if( DEBUG ) {
             ctx.fillStyle = "#fff";
             ctx.fillText(
-              this.type[0] + this.type[1] + this.type[2], // this.id, 
+              this.type[0] + this.type[1] + this.type[2], // this.id,
               this.x + 3, this.y + 12 );
             ctx.fillText(
               this.id,
@@ -318,8 +334,8 @@ BB.Block.RenderFns = {
         ctx.fillStyle = "#7f7f7f";
         //ctx.lineWidth = 1;
 
-        var x = this.x, y = this.y, size = this.size;
-        ctx.fillRect( x, y, size, size );
+        var x = this.x, y = this.y, _size = this._size;
+        ctx.fillRect( x, y, _size, _size );
 
         if( DEBUG ) {
             ctx.fillStyle = "#d0d0d0";
@@ -335,9 +351,9 @@ BB.Block.RenderFns = {
         ctx.fillStyle = "#ff0000";
         ctx.strokeStyle = "#fff";
 
-        var x = this.x, y = this.y, size = this.size;
-        ctx.fillRect( x, y, size, size );
-        ctx.strokeRect( x, y, size, size );
+        var x = this.x, y = this.y, _size = this._size;
+        ctx.fillRect( x, y, _size, _size );
+        ctx.strokeRect( x, y, _size, _size );
 
         ctx.fillStyle = "#fff";
         ctx.fillText( "ERROR", this.x + 3, this.y + 12 );
@@ -347,6 +363,9 @@ BB.Block.RenderFns = {
 BB.Block.prototype.type = BB.Block.TYPES[0];
 
 BB.Block.prototype.render = function( ctx ) {
+
+    if( this.blockSize != this.game.blockSize )
+        this._size = this.size * this.blockSize;
 
     if( BB.Block.RenderFns.hasOwnProperty( this.type ) ) {
         BB.Block.RenderFns[this.type].call( this, ctx );
@@ -406,7 +425,6 @@ BB.Bomb.prototype.boom = function() {
     this.timeoutID = undefined;
 
     var thisBlock = this.game.getBlockAt( this.x, this.y );
-    var hbs = game.blockSize / 2;
     var cursorBlock = thisBlock, done = false, direction;
 
     var boomBlock = function( block ) {
@@ -427,10 +445,10 @@ BB.Bomb.prototype.boom = function() {
 
     this.fires.push(
       new BB.Fire( this.game, {
-          x: cursorBlock.x + hbs,
-          y: cursorBlock.y + hbs,
+          x: cursorBlock.x,
+          y: cursorBlock.y,
           power: this.power,
-          size: hbs,
+          size: .5,
           sparklesChances: .8
       } )
     );
@@ -455,10 +473,10 @@ BB.Bomb.prototype.boom = function() {
 
                 this.fires.push(
                   new BB.Fire( this.game, {
-                      x: cursorBlock.x + hbs,
-                      y: cursorBlock.y + hbs,
+                      x: cursorBlock.x,
+                      y: cursorBlock.y,
                       power: this.power - i,
-                      size: hbs,
+                      size: .5,
                       sparklesChances: .5
                   } )
                 );
@@ -474,30 +492,34 @@ BB.Bomb.prototype.boom = function() {
 BB.Bomb.prototype.render = function( ctx ) {
 
     if( this.isAlive ) {
+
+        if( this.blockSize != this.game.blockSize )
+            this._size = this.size * this.blockSize;
+
         var rotation = -0.8;
 
         ctx.save();
         ctx.translate( this.x, this.y );
         //ctx.rotate( rotation );
 
-        var s = this.size, x = 0, y = 0, fuse = s / 6;
+        var s = this._size, fuse = s / 6;
 
         ctx.lineWidth = fuse;
         ctx.strokeStyle = ( Date.now() / 300 % 2 > 1 ) ? "#f40" : "#fa0";
         ctx.fillStyle = this.color;
 
         ctx.beginPath();
-        ctx.arc( x, y, s / 2, 0, twoPI );
+        ctx.arc( 0, 0, s / 2, 0, twoPI );
         ctx.fill();
 
         //ctx.beginPath();
         //ctx.fillStyle = "#00f";
-        ctx.fillRect( x - fuse / 2, y - s / 2 - fuse, fuse, fuse );
+        ctx.fillRect( -fuse / 2, -s / 2 - fuse, fuse, fuse );
 
         ctx.beginPath();
         var arcStart = -Math.PI / 2 + 0.2,
             arcEnd = twoPI - 0.3;
-        ctx.arc( x, y, s / 2 + fuse / 2, arcStart, ( arcEnd / this.duration ) * ( Date.now() - this.startTick ) + arcStart );
+        ctx.arc( 0, 0, s / 2 + fuse / 2, arcStart, ( arcEnd / this.duration ) * ( Date.now() - this.startTick ) + arcStart );
         ctx.stroke();
 
         ctx.restore();
@@ -523,7 +545,7 @@ BB.Fire = function( game, opt ) {
                 color: getHSLA( BB.r() * 60, 100, 50, BB.r() * 100 - 10 ),
                 duration: BB.r() * this.duration / 2,
                 delay: BB.r() * this.duration / 3,
-                size: this.size * BB.r()
+                _size: this._size * BB.r()
             } )
             //);
         }
@@ -545,17 +567,20 @@ BB.Fire.prototype.render = function( ctx ) {
 
     if( !this.isAlive ) return;
 
+    if( this.blockSize != this.game.blockSize )
+        this._size = this.size * this.blockSize;
+
     if( this._tween == undefined ) {
 
         ( function() {
-            var sizeGoal = this.size;
-            this.size /= 5;
+            var _sizeGoal = this._size;
+            this._size /= 5;
 
             this._tween =
                 new TWEEN.Tween( this )
-                    .to( { size: sizeGoal }, this.duration / 20 )
+                    .to( { _size: _sizeGoal }, this.duration / 20 )
                     .chain( new TWEEN.Tween( this )
-                        .to( { size: this.game.blockSize / 10 }, this.duration - this.duration / 20 )
+                        .to( { _size: this.game.blockSize / 10 }, this.duration - this.duration / 20 )
                         .onComplete( function() {
                             this.isAlive = false;
                         } )
@@ -566,9 +591,9 @@ BB.Fire.prototype.render = function( ctx ) {
         } ).call( this );
     }
 
-    var s = this.size,// - ( Date.now() - this.startTick ) * ( ( this.size - 3 ) / this.duration ),
-        x = this.x,
-        y = this.y
+    var s = this._size,// - ( Date.now() - this.startTick ) * ( ( this._size - 3 ) / this.duration ),
+        x = this.x + this.blockSize / 2,
+        y = this.y + this.blockSize / 2
     ;
 
     ctx.fillStyle = this.color;
@@ -689,6 +714,9 @@ BB.Player = function( game, opt ) {
     this.game = game;
     Object.extend( this, opt );
 
+    this.blockSize = this.blockSize || this.game.blockSize;
+    this._size = this.size * this.blockSize;
+
     this.id = BB.Player.ALL.length;
     BB.Player.ALL.push( this );
 };
@@ -699,7 +727,9 @@ BB.Player.prototype.constructor = BB.Player;
 BB.Player.prototype.id = 0;
 BB.Player.prototype.color = "#00dd00";
 BB.Player.prototype.health = 1;
-BB.Player.prototype.size = 16;
+BB.Player.prototype.blockSize = 16;
+BB.Player.prototype.size = 1;
+BB.Player.prototype._size = 1;
 BB.Player.prototype.x = 0;
 BB.Player.prototype.y = 0;
 BB.Player.prototype._x = 0; // target x when this._tweenMove is going on
@@ -793,7 +823,7 @@ BB.Player.prototype.action = function() {
     this.bombs.push(
       new BB.Bomb( this.game, {
           player: this,
-          size: this.game.blockSize / 2,
+          size: .5,
           x: this.x,
           y: this.y
       } )
@@ -805,7 +835,10 @@ BB.Player.prototype.render = function( ctx ) {
 
     if( this.health <= 0 ) this.isAlive = false;
 
-    var x = this.x, y = this.y, s = this.size, hs = this.size / 2;
+    if( this.blockSize != this.game.blockSize )
+        this._size = this.size * this.blockSize;
+
+    var x = this.x, y = this.y, s = this._size, hs = this._size / 2;
 
     ctx.save();
 
@@ -821,7 +854,7 @@ BB.Player.prototype.render = function( ctx ) {
     if( !this.isAlive ) {
         ctx.globalAlpha = 0.5;
         ctx.scale( .6, .6 );
-        ctx.lineWidth = this.size / 3;
+        ctx.lineWidth = this._size / 3;
     }
 
     ctx.fillStyle = this.color;
@@ -849,8 +882,6 @@ loop = function() {
 
     TWEEN.update();
 
-    //ctx.clearRect( 0, 0, canvasEl.width, canvasEl.height );
-
     game.render();
 
 };
@@ -859,7 +890,7 @@ loop = function() {
 
 
 game = new Game( {
-    blockSize: 33.3333333,
+    nbWBlocks: 15,
     ctx: document.getElementById( 'canvas' ).getContext( '2d' )
 } );
 
