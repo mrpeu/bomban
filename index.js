@@ -19,38 +19,20 @@ var getHSLA = function( h, s, l, a ) {
 };
 
 Object.extend = function( obj, extension ) {
-    for ( var prop in extension )
+    for( var prop in extension )
         obj[prop] = extension[prop];
 
     return obj;
 };
 
 Array.prototype.clean = function( deleteValue ) {
-    for ( var i = 0; i < this.length; i++ ) {
-        if ( this[i] == deleteValue ) {
+    for( var i = 0; i < this.length; i++ ) {
+        if( this[i] == deleteValue ) {
             this.splice( i, 1 );
             i--;
         }
     }
     return this;
-};
-
-
-//--------------
-// global variables (pleonasm for "to clean up")
-var canvasEl = document.getElementById( 'canvas' );
-
-var ctx = canvasEl.getContext( '2d' );
-
-window.onresize = function() {
-    canvasEl.width = canvasEl.offsetWidth;
-    canvasEl.height = canvasEl.offsetHeight;
-};
-
-var mouse;
-
-window.onmousemove = function( e ) {
-    mouse = { x: e.x, y: e.y };
 };
 //============
 
@@ -64,7 +46,14 @@ window.onmousemove = function( e ) {
 Game = function( opt ) {
     Object.extend( this, opt );
 
-    window.onresize();
+    var canvasEl = this.ctx.canvas;
+
+    window.resize = function() {
+        canvasEl.width = canvasEl.offsetWidth;
+        canvasEl.height = canvasEl.offsetHeight;
+    };
+
+    window.resize();
 
     this.width = canvasEl.width;
     this.height = canvasEl.height;
@@ -89,8 +78,8 @@ Game.prototype.init = function() {
     // blocks
     var ratioEmptyBlocks = 0.6;
 
-    for ( var i = 0; i < this.nbWBlocks; i++ )
-        for ( var j = 0; j < this.nbHBlocks; j++ ) {
+    for( var i = 0; i < this.nbWBlocks; i++ )
+        for( var j = 0; j < this.nbHBlocks; j++ ) {
 
             this.blocks.push(
               new BB.Block( this, {
@@ -105,8 +94,46 @@ Game.prototype.init = function() {
 
     //--------
     // players
+    var makeRoomForPlayer = function( player, nbBlocksToEmpty ) {
+        // make some empty blocks around the player
+        var ba, bb, nextx, nexty, dir;
+        bb = this.getBlockAt( player.x, player.y );
+
+        // find a direction in which we can make some room for the player
+        do {
+            var idir = Math.round( Math.random() * ( DIRECTION.length - 1 ) );
+            dir = DIRECTION[idir];
+        } while(
+          this.getBlockAt(
+            bb.x + ( dir == "east" ? this.blockSize * nbBlocksToEmpty : dir == "west" ? -this.blockSize * nbBlocksToEmpty : 0 ),
+            bb.y + ( dir == "south" ? this.blockSize * nbBlocksToEmpty : dir == "north" ? -this.blockSize * nbBlocksToEmpty : 0 )
+          ) == undefined
+        )
+        // turn the player toward this direction
+        player.direction = dir;
+        // clear the way
+        for( var i = 0; i < nbBlocksToEmpty; i++ ) {
+
+            while( bb == undefined || bb == ba ) {
+
+                bb = this.getBlockAt(
+                  ba.x + ( dir == "east" ? this.blockSize : dir == "west" ? -this.blockSize : 0 ),
+                  ba.y + ( dir == "south" ? this.blockSize : dir == "north" ? -this.blockSize : 0 )
+                );
+
+            }
+
+            bb.type = "EMPTY";
+
+            ba = bb;
+
+        }
+
+        return player;
+    };
+
     this.players.push(
-      this.makeRoomForPlayer( new BB.Player( this, {
+      makeRoomForPlayer.call( this, new BB.Player( this, {
           color: "#0f0",
           x: blockSize / 2, y: blockSize / 2,
           size: 21
@@ -114,7 +141,7 @@ Game.prototype.init = function() {
     );
 
     // this.players.push(
-    //   this.makeRoomForPlayer( new Player( this, {
+    //   makeRoomForPlayer( new Player( this, {
     //     color: getHSLA( 228, 100, 50, 0.9 ),
     //     x: blockSize*(this.nbWBlocks-1) + blockSize/2, y: blockSize*(this.nbHBlocks-1) + blockSize/2
     //   }), 4 )
@@ -132,37 +159,33 @@ Game.prototype.init = function() {
 
 };
 
-Game.prototype.update = function() {
+Game.prototype.render = function() {
 
-    if ( canvasEl.width != this.width || canvasEl.height != this.height ) {
+    if( this.ctx.canvas.width != this.width || this.ctx.canvas.height != this.height ) {
         this.width = canvasEl.width;
         this.height = canvasEl.height;
         this.grid.nbWBlocks = this.width / this.blockSize;
         this.grid.nbHBlocks = this.height / this.blockSize;
     }
 
-};
-
-Game.prototype.render = function( ctx ) {
-
     //--------
     // grid
-    this.grid.render( ctx );
-
-    //--------
-    // players
-    var allPlayers = this.players;
-    for ( var i = 0; i < allPlayers.length; i++ ) {
-        allPlayers[i].render( ctx );
-    }
+    this.grid.render( this.ctx );
 
     //--------
     // BB.Prop
     BB.Prop.ALL.forEach( function( prop ) {
-        if ( prop != undefined && prop.isAlive ) {
-            prop.render( ctx );
+        if( prop != undefined && prop.isAlive ) {
+            prop.render( this.ctx );
         }
-    } );
+    }, this );
+
+    //--------
+    // players
+    var allPlayers = BB.Player.ALL;
+    for( var i = 0; i < allPlayers.length; i++ ) {
+        allPlayers[i].render( this.ctx );
+    }
 };
 
 Game.prototype.getBlock = function( posX, posY ) {
@@ -175,48 +198,10 @@ Game.prototype.getBlockAt = function( x, y ) {
 
 Game.prototype.getNextBlockAt = function( x, y, direction ) {
     x += ( direction == "east" ? this.blockSize : direction == "west" ? -this.blockSize : 0 );
-    if ( x < 0 || x > this.width ) return;
+    if( x < 0 || x > this.width ) return;
     y += ( direction == "south" ? this.blockSize : direction == "north" ? -this.blockSize : 0 );
-    if ( y < 0 || y > this.height ) return;
+    if( y < 0 || y > this.height ) return;
     return this.getBlockAt( x, y );
-};
-
-Game.prototype.makeRoomForPlayer = function( player, nbBlocksToEmpty ) {
-    // make some empty blocks around the player
-    var ba, bb, nextx, nexty, dir;
-    bb = this.getBlockAt( player.x, player.y );
-
-    // find a direction in which we can make some room for the player
-    do {
-        var idir = Math.round( Math.random() * ( DIRECTION.length - 1 ) );
-        dir = DIRECTION[idir];
-    } while (
-      this.getBlockAt(
-        bb.x + ( dir == "east" ? this.blockSize * nbBlocksToEmpty : dir == "west" ? -this.blockSize * nbBlocksToEmpty : 0 ),
-        bb.y + ( dir == "south" ? this.blockSize * nbBlocksToEmpty : dir == "north" ? -this.blockSize * nbBlocksToEmpty : 0 )
-      ) == undefined
-    )
-    // turn the player toward this direction
-    player.direction = dir;
-    // clear the way
-    for ( var i = 0; i < nbBlocksToEmpty; i++ ) {
-
-        while ( bb == undefined || bb == ba ) {
-
-            bb = this.getBlockAt(
-              ba.x + ( dir == "east" ? this.blockSize : dir == "west" ? -this.blockSize : 0 ),
-              ba.y + ( dir == "south" ? this.blockSize : dir == "north" ? -this.blockSize : 0 )
-            );
-
-        }
-
-        bb.type = "EMPTY";
-
-        ba = bb;
-
-    }
-
-    return player;
 };
 //============
 
@@ -231,7 +216,7 @@ var BB = BB || ( function() {
     var _randomId = 0;
     var _randoms = [];
 
-    for ( var i = 0; i < 500; i++ ) _randoms.push( Math.random() );
+    for( var i = 0; i < 500; i++ ) _randoms.push( Math.random() );
 
     return {
         DIRECTIONS: ["none", "west", "north", "east", "south"],
@@ -318,7 +303,7 @@ BB.Block.RenderFns = {
         ctx.fill();
         //ctx.stroke();
 
-        if ( DEBUG ) {
+        if( DEBUG ) {
             ctx.fillStyle = "#fff";
             ctx.fillText(
               this.type[0] + this.type[1] + this.type[2], // this.id, 
@@ -329,14 +314,14 @@ BB.Block.RenderFns = {
         }
     },
     "EMPTY": function( ctx ) {
-        
+
         ctx.fillStyle = "#7f7f7f";
         //ctx.lineWidth = 1;
 
         var x = this.x, y = this.y, size = this.size;
         ctx.fillRect( x, y, size, size );
 
-        if ( DEBUG ) {
+        if( DEBUG ) {
             ctx.fillStyle = "#d0d0d0";
             ctx.fillText(
               this.type[0] + this.type[1] + this.type[2], // this.id, 
@@ -361,26 +346,26 @@ BB.Block.RenderFns = {
 
 BB.Block.prototype.type = BB.Block.TYPES[0];
 
-BB.Block.prototype.render = function() {
+BB.Block.prototype.render = function( ctx ) {
 
-    if ( BB.Block.RenderFns.hasOwnProperty( this.type ) ) {
+    if( BB.Block.RenderFns.hasOwnProperty( this.type ) ) {
         BB.Block.RenderFns[this.type].call( this, ctx );
     }
     else {
         BB.Block.RenderFns["ERROR"].call( this, ctx );
     }
 };
- 
+
 BB.Block.prototype.empty = function( bomb, power ) {
     this.type = "EMPTY";
 }
 
 BB.Block.prototype.contains = function( object ) {
 
-    if ( object.x < this.x ) return false;
-    if ( object.y < this.y ) return false;
-    if ( object.x > ( this.x + this.game.blockSize ) ) return false;
-    if ( object.y > ( this.y + this.game.blockSize ) ) return false;
+    if( object.x < this.x ) return false;
+    if( object.y < this.y ) return false;
+    if( object.x > ( this.x + this.game.blockSize ) ) return false;
+    if( object.y > ( this.y + this.game.blockSize ) ) return false;
 
     return true;
     ;
@@ -427,12 +412,12 @@ BB.Bomb.prototype.boom = function() {
     var boomBlock = function( block ) {
         this.game.players.forEach( function( player ) {
 
-            if ( block.contains( player ) ) {
+            if( block.contains( player ) ) {
                 player.health--;
             }
 
             player.bombs.forEach( function( bomb ) {
-                if ( bomb.isAlive && block.contains( bomb ) ) {
+                if( bomb.isAlive && block.contains( bomb ) ) {
                     bomb.boom();
                 }
             } );
@@ -452,16 +437,16 @@ BB.Bomb.prototype.boom = function() {
 
     boomBlock( cursorBlock );
 
-    for ( var d = 0; d < DIRECTION.length; d++ ) {
+    for( var d = 0; d < DIRECTION.length; d++ ) {
         direction = DIRECTION[d];
         cursorBlock = thisBlock;
         done = false;
 
-        for ( var i = 1; i < this.power && !done; i++ ) {
+        for( var i = 1; i < this.power && !done; i++ ) {
 
             cursorBlock = this.game.getNextBlockAt( cursorBlock.x, cursorBlock.y, direction );
 
-            if ( cursorBlock !== undefined ) {
+            if( cursorBlock !== undefined ) {
                 boomBlock( cursorBlock );
 
                 done = ( cursorBlock.type != "EMPTY" && cursorBlock.type != "ERROR" );
@@ -474,7 +459,7 @@ BB.Bomb.prototype.boom = function() {
                       y: cursorBlock.y + hbs,
                       power: this.power - i,
                       size: hbs,
-                      sparklesChances: .3
+                      sparklesChances: .5
                   } )
                 );
             }
@@ -488,7 +473,7 @@ BB.Bomb.prototype.boom = function() {
 
 BB.Bomb.prototype.render = function( ctx ) {
 
-    if ( this.isAlive ) {
+    if( this.isAlive ) {
         var rotation = -0.8;
 
         ctx.save();
@@ -529,9 +514,9 @@ BB.Fire = function( game, opt ) {
 
     BB.Prop.apply( this, arguments );
 
-    if ( this.sparklesChances > 0 ) {
+    if( this.sparklesChances > 0 ) {
         var sparkles = [];
-        while ( BB.r() < this.sparklesChances ) {
+        while( BB.r() < this.sparklesChances ) {
             //sparkles.push(
             new BB.Fire( game, {
                 x: this.x + BB.r() * game.blockSize - game.blockSize / 2, y: this.y + BB.r() * game.blockSize - game.blockSize / 2,
@@ -558,9 +543,9 @@ BB.Fire.prototype.sparklesChances = 0;
 
 BB.Fire.prototype.render = function( ctx ) {
 
-    if ( !this.isAlive ) return;
+    if( !this.isAlive ) return;
 
-    if ( this._tween == undefined ) {
+    if( this._tween == undefined ) {
 
         ( function() {
             var sizeGoal = this.size;
@@ -616,7 +601,7 @@ BB.Grid.prototype = {
 
 BB.Grid.prototype.render = function( ctx ) {
 
-    if ( this.thickness < 1 ) return;
+    if( this.thickness < 1 ) return;
 
     ctx.strokeStyle = this.color;
     ctx.lineWidth = this.thickness;
@@ -625,13 +610,13 @@ BB.Grid.prototype.render = function( ctx ) {
     var nbWBlocks = this.game.nbWBlocks;
     var nbHBlocks = this.game.nbHBlocks;
 
-    for ( var i = 0; i < nbWBlocks + 1; i++ ) {
+    for( var i = 0; i < nbWBlocks + 1; i++ ) {
         ctx.moveTo( 0, i * s );
         ctx.lineTo( nbWBlocks * s, i * s );
         ctx.stroke();
     }
 
-    for ( var i = 0; i < nbHBlocks + 1; i++ ) {
+    for( var i = 0; i < nbHBlocks + 1; i++ ) {
         ctx.moveTo( i * s, 0 );
         ctx.lineTo( i * s, nbHBlocks * s );
         ctx.stroke();
@@ -662,7 +647,7 @@ BB.Input.prototype = {
 BB.Input.prototype.onKeyDown = function( e ) {
     e = e || window.event;
 
-    switch ( e.keyCode ) {
+    switch( e.keyCode ) {
         case 37: // left
             this.game.players[0].moveToward( DIRECTION[0] );
             e.preventDefault();
@@ -699,39 +684,52 @@ BB.Input.prototype.onKeyDown = function( e ) {
 //############
 // Player
 //############
-BB.Player = function( game, opt ) { BB.Prop.apply( this, arguments ); };
+BB.Player = function( game, opt ) {
+
+    this.game = game;
+    Object.extend( this, opt );
+
+    this.id = BB.Player.ALL.length;
+    BB.Player.ALL.push( this );
+};
+BB.Player.ALL = [];
 
 BB.Player.prototype.constructor = BB.Player;
-BB.Player.prototype = Object.create( BB.Prop.prototype );
 
+BB.Player.prototype.id = 0;
 BB.Player.prototype.color = "#00dd00";
 BB.Player.prototype.health = 1;
+BB.Player.prototype.size = 16;
+BB.Player.prototype.x = 0;
+BB.Player.prototype.y = 0;
 BB.Player.prototype._x = 0; // target x when this._tweenMove is going on
 BB.Player.prototype._y = 0;
+BB.Player.prototype.direction = BB.DIRECTIONS[0];
+BB.Player.prototype.isAlive = true;
 BB.Player.prototype._tweenMove = [];
 BB.Player.prototype.bombs = [];
 
 BB.Player.prototype.canMoveForward = function() {
-    if ( this.health <= 0 ) return false;
+    if( this.health <= 0 ) return false;
     var b = this.game.getNextBlockAt(( this._x || this.x ), ( this._y || this.y ), this.direction );
     return b != undefined && b.type == "EMPTY";
 };
 
 BB.Player.prototype.moveToward = function( direction ) {
-    if ( this.health <= 0 ) return false;
+    if( this.health <= 0 ) return false;
 
-    if ( this.direction != direction ) {
+    if( this.direction != direction ) {
         this.direction = direction;
     }
 
     this.direction = direction;
-    if ( this.canMoveForward() )
+    if( this.canMoveForward() )
         this.moveForward();
 };
 
 BB.Player.prototype.moveForward = function() {
 
-    switch ( this.direction ) {
+    switch( this.direction ) {
         case DIRECTION[0]: // left
             this.tweenMoveTo(( this._x || this.x ) - this.game.blockSize, ( this._y || this.y ) );
             break;
@@ -768,10 +766,10 @@ BB.Player.prototype.tweenMoveTo = function( x, y ) {
 
     this._tweenMove.push( newTweenMove );
 
-    if ( this._tweenMove.length > 1 ) {
+    if( this._tweenMove.length > 1 ) {
         this._tweenMove[0].stop();
 
-        for ( var i = 0; i < this._tweenMove.length - 1; i++ ) {
+        for( var i = 0; i < this._tweenMove.length - 1; i++ ) {
             this._tweenMove[i]
                 .setDuration( animTime )
                 .easing( TWEEN.Easing.Linear.None )
@@ -790,6 +788,8 @@ BB.Player.prototype.tweenMoveTo = function( x, y ) {
 
 BB.Player.prototype.action = function() {
 
+    if( !this.isAlive ) return;
+
     this.bombs.push(
       new BB.Bomb( this.game, {
           player: this,
@@ -803,31 +803,36 @@ BB.Player.prototype.action = function() {
 
 BB.Player.prototype.render = function( ctx ) {
 
-    if ( this.health <= 0 ) this.isAlive = false;
+    if( this.health <= 0 ) this.isAlive = false;
 
     var x = this.x, y = this.y, s = this.size, hs = this.size / 2;
 
     ctx.save();
-    if ( !this.isAlive ) ctx.globalAlpha = 0.75;
 
     ctx.translate( x, y );
 
-    switch ( this.direction ) {
+    switch( this.direction ) {
         case "west": ctx.rotate( deg2rad * 90 ); break;
         case "east": ctx.rotate( deg2rad * -90 ); break;
         case "north": ctx.rotate( deg2rad * 180 ); break;
         case "south": default: break;
     }
 
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = ctx.fillStyle = this.color;
+    if( !this.isAlive ) {
+        ctx.globalAlpha = 0.5;
+        ctx.scale( .6, .6 );
+        ctx.lineWidth = this.size / 3;
+    }
+
+    ctx.fillStyle = this.color;
 
     ctx.beginPath();
     ctx.moveTo( -hs, -hs );
     ctx.lineTo( +hs, -hs );
     ctx.lineTo( 0, +hs );
     ctx.lineTo( -hs, -hs );
-    ctx[this.isAlive ? "fill" : "stroke"]();
+    ctx.closePath();
+    ctx.fill();
 
     ctx.restore();
 
@@ -844,11 +849,9 @@ loop = function() {
 
     TWEEN.update();
 
-    game.update();
-
     //ctx.clearRect( 0, 0, canvasEl.width, canvasEl.height );
 
-    game.render( ctx );
+    game.render();
 
 };
 
@@ -856,13 +859,8 @@ loop = function() {
 
 
 game = new Game( {
-    blockSize: 33.3333333
+    blockSize: 33.3333333,
+    ctx: document.getElementById( 'canvas' ).getContext( '2d' )
 } );
 
 loop();
-
-
-/*
-todos:
-- replace initialisation with || by a function filling the undefined by default values
-*/
