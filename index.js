@@ -50,11 +50,11 @@ Game = function( opt ) {
 
     var canvasEl = this.ctx.canvas;
 
-    window.addEventListener( "re_size", function() {
+    window.addEventListener( "resize", function() {
         var game = Game.instance,
             canvasEl = game.ctx.canvas;
-        game.width = canvasEl.width = canvasEl.offsetWidth;
-        game.height = canvasEl.height = canvasEl.offsetHeight;
+        game.width = canvasEl.offsetWidth;
+        game.height = canvasEl.offsetHeight;
         game.blockSize = Math.floor( game.width / game.nbWBlocks );
     }, false );
 
@@ -78,8 +78,6 @@ Game.prototype.players = [];
 
 Game.prototype.init = function() {
 
-    var blockSize = this.blockSize;
-
     //--------
     // blocks
     var ratioEmptyBlocks = 0.6;
@@ -89,13 +87,17 @@ Game.prototype.init = function() {
 
             this.blocks.push(
               new BB.Block( this, {
-                  x: j * blockSize,
-                  y: i * blockSize,
+                  x: j * this.blockSize,
+                  y: i * this.blockSize,
                   type: ( Math.random() > ratioEmptyBlocks ) ? "EMPTY" : "MUD"
               } )
             );
 
         }
+
+    //--------
+    // grid
+    this.grid = new BB.Grid( this, { thickness: 1, color: '#fff' } );
 
     //--------
     // players
@@ -140,7 +142,7 @@ Game.prototype.init = function() {
     this.players.push(
       makeRoomForPlayer.call( this, new BB.Player( this, {
           color: "#0f0",
-          x: blockSize / 2, y: blockSize / 2
+          x: this.blockSize / 2, y: this.blockSize / 2
       } ), 4 )
     );
 
@@ -150,16 +152,11 @@ Game.prototype.init = function() {
     //     x: blockSize*(this.nbWBlocks-1) + blockSize/2, y: blockSize*(this.nbHBlocks-1) + blockSize/2
     //   }), 4 )
     // );
-
-
-
-    //--------
-    // grid
-    this.grid = new BB.Grid( this, { thickness: 1, color: '#fff' } );
+    
 
     //--------
     // input
-    this.input = new BB.Input( this, {} );
+    this.input = new BB.Input( this, { player: this.players[0] } );
 
 };
 
@@ -263,6 +260,11 @@ BB.Prop.prototype.isAlive = true;
 
 BB.Prop.prototype.render = function( ctx ) {
 
+    if ( this.blockSize != this.game.blockSize ) {
+        this.blockSize = this.game.blockSize;
+        this._size = this.size * this.blockSize;
+    }
+
     ctx.fillStyle = "#ff0000";
     ctx.strokeStyle = "#fff";
 
@@ -364,8 +366,10 @@ BB.Block.prototype.type = BB.Block.TYPES[0];
 
 BB.Block.prototype.render = function( ctx ) {
 
-    if( this.blockSize != this.game.blockSize )
+    if ( this.blockSize != this.game.blockSize ) {
+        this.blockSize = this.game.blockSize;
         this._size = this.size * this.blockSize;
+    }
 
     if( BB.Block.RenderFns.hasOwnProperty( this.type ) ) {
         BB.Block.RenderFns[this.type].call( this, ctx );
@@ -491,10 +495,12 @@ BB.Bomb.prototype.boom = function() {
 
 BB.Bomb.prototype.render = function( ctx ) {
 
-    if( this.isAlive ) {
+    if ( this.isAlive ) {
 
-        if( this.blockSize != this.game.blockSize )
+        if ( this.blockSize != this.game.blockSize ) {
+            this.blockSize = this.game.blockSize;
             this._size = this.size * this.blockSize;
+        }
 
         var rotation = -0.8;
 
@@ -565,10 +571,12 @@ BB.Fire.prototype.sparklesChances = 0;
 
 BB.Fire.prototype.render = function( ctx ) {
 
-    if( !this.isAlive ) return;
+    if ( !this.isAlive ) return;
 
-    if( this.blockSize != this.game.blockSize )
+    if ( this.blockSize != this.game.blockSize ) {
+        this.blockSize = this.game.blockSize;
         this._size = this.size * this.blockSize;
+    }
 
     if( this._tween == undefined ) {
 
@@ -660,13 +668,17 @@ BB.Input = function( game, opt ) {
     this.id = BB.Input.ALL.length;
     BB.Input.ALL.push( this );
 
-    window.addEventListener( 'keydown', this.onKeyDown.bind( this ), false );
+    var eventTarget = window; //game.ctx.canvas;
+    eventTarget.addEventListener( 'keydown', this.onKeyDown.bind( this ), false );
+    eventTarget.addEventListener( 'touchstart', this.onTouch.bind( this ), false );
+    eventTarget.addEventListener( 'touchend', this.onTouch.bind( this ), false );
 };
 BB.Input.prototype.constructor = BB.Input;
 BB.Input.ALL = [];
 BB.Input.prototype = {
     id: -1,
-    game: undefined
+    game: undefined,
+    player: undefined
 };
 
 BB.Input.prototype.onKeyDown = function( e ) {
@@ -674,27 +686,27 @@ BB.Input.prototype.onKeyDown = function( e ) {
 
     switch( e.keyCode ) {
         case 37: // left
-            this.game.players[0].moveToward( DIRECTION[0] );
+            this.player.moveToward( DIRECTION[0] );
             e.preventDefault();
             break;
 
         case 38: // top
-            this.game.players[0].moveToward( DIRECTION[1] );
+            this.player.moveToward( DIRECTION[1] );
             e.preventDefault();
             break;
 
         case 39: // right
-            this.game.players[0].moveToward( DIRECTION[2] );
+            this.player.moveToward( DIRECTION[2] );
             e.preventDefault();
             break;
 
         case 40: // bottom
-            this.game.players[0].moveToward( DIRECTION[3] );
+            this.player.moveToward( DIRECTION[3] );
             e.preventDefault();
             break;
 
         case 32: // spacebar
-            this.game.players[0].action();
+            this.player.action();
             e.preventDefault();
             break;
 
@@ -702,6 +714,14 @@ BB.Input.prototype.onKeyDown = function( e ) {
             //console.info(e.keyCode); 
             break;
     }
+};
+
+BB.Input.prototype.onTouch = function( e ) {
+    new BB.Fire( this.game, {
+        sparklesRate: .9,
+        x: e.changedTouches[0].clientX - this.game.ctx.canvas.getBoundingClientRect().left,
+        y: e.changedTouches[0].clientY - this.game.ctx.canvas.getBoundingClientRect().top
+    } );
 };
 //############
 
@@ -728,8 +748,8 @@ BB.Player.prototype.id = 0;
 BB.Player.prototype.color = "#00dd00";
 BB.Player.prototype.health = 1;
 BB.Player.prototype.blockSize = 16;
-BB.Player.prototype.size = 1;
-BB.Player.prototype._size = 1;
+BB.Player.prototype.size = .7;
+BB.Player.prototype._size = 16;
 BB.Player.prototype.x = 0;
 BB.Player.prototype.y = 0;
 BB.Player.prototype._x = 0; // target x when this._tweenMove is going on
@@ -835,8 +855,10 @@ BB.Player.prototype.render = function( ctx ) {
 
     if( this.health <= 0 ) this.isAlive = false;
 
-    if( this.blockSize != this.game.blockSize )
+    if ( this.blockSize != this.game.blockSize ) {
+        this.blockSize = this.game.blockSize;
         this._size = this.size * this.blockSize;
+    }
 
     var x = this.x, y = this.y, s = this._size, hs = this._size / 2;
 
@@ -851,10 +873,11 @@ BB.Player.prototype.render = function( ctx ) {
         case "south": default: break;
     }
 
-    if( !this.isAlive ) {
+    if ( this.isAlive ) {
+        ctx.globalAlpha = 0.8;
+    } else {
         ctx.globalAlpha = 0.5;
         ctx.scale( .6, .6 );
-        ctx.lineWidth = this._size / 3;
     }
 
     ctx.fillStyle = this.color;
