@@ -5,37 +5,34 @@
     <style type="text/css">
         body {
             background-color: #444;
-            overflow-x:hidden;
         }
 
         #game {
-            top: 2em;
-            width: 20%;
-            padding: 20%;
-            left: 30%;
-            box-sizing: border-box;
+            margin: 2em;
+            max-width: 750px;
+            width: 100%;
             position: relative;
         }
 
         #canvas-container {
-            width: 100%;
-            height: 100%;
             position: absolute;
-            left: 0; top: 0;
+            left: 0;
+            top: 0;
             background-color: #eee;
-            padding: 3px; /* 1/2 border */
+            padding: 50%;
+            box-shadow: rgba(0,0,0,0.4) .5em .5em inset;
         }
-
+        /*
         #canvas-container:after {
-            outline: 0.5em solid #222; /* border */
+            outline: 0.5em solid #222;
             box-shadow: rgba(0,0,0,0.4) .15em .15em inset;
             content: "";
-            width: 99%; /* width - border */
+            width: 99%;
             height: 99%;
             left: 0;
             top: 0;
             position: absolute;
-        }
+        }*/
         #canvas {
             position: absolute;
             top: 0; left: 0;
@@ -66,7 +63,7 @@
 
     <div id="game">
         <div id="canvas-container">
-            <div id="canvas-shadow"></div>
+            <!--<div id="canvas-shadow"></div>-->
             <canvas id="canvas"></canvas>
         </div>
     </div>
