@@ -51,19 +51,13 @@ Game = function( opt ) {
     var canvasEl = this.ctx.canvas;
 
     window.addEventListener( "resize", function() {
-        var game = Game.instance,
-            canvasEl = game.ctx.canvas;
-        game.width = canvasEl.offsetWidth;
-        game.height = canvasEl.offsetHeight;
-        game.blockSize = Math.floor( game.width / game.nbWBlocks );
+        Game.instance.onResize();
     }, false );
-
-    this.width = canvasEl.width = canvasEl.offsetWidth;
-    this.height = canvasEl.height = canvasEl.offsetHeight;
+    
+    this.onResize();
 
     // make it square
     this.nbHBlocks = this.nbWBlocks;
-    this.blockSize = Math.floor( this.width / this.nbWBlocks );
 
     this.init();
 
@@ -163,10 +157,7 @@ Game.prototype.init = function() {
 Game.prototype.render = function() {
 
     if( this.ctx.canvas.offsetWidth != this.width || this.ctx.canvas.offsetHeight != this.height ) {
-        this.width = this.ctx.canvas.offsetWidth;
-        this.height = this.ctx.canvas.offsetHeight;
-        this.grid.nbWBlocks = this.width / this.blockSize;
-        this.grid.nbHBlocks = this.height / this.blockSize;
+        this.onResize();
     }
 
     this.ctx.clearRect( 0, 0, this.width, this.height );
@@ -190,6 +181,17 @@ Game.prototype.render = function() {
         allPlayers[i].render( this.ctx );
     }
 };
+
+Game.prototype.onResize = function() {
+    var canvasEl = this.ctx.canvas;
+    this.width = canvasEl.width = canvasEl.offsetWidth;
+    this.height = canvasEl.height = canvasEl.offsetHeight;
+    this.blockSize = this.width / this.nbWBlocks;
+
+    if ( this.grid === undefined ) return;
+    this.grid.nbWBlocks = this.width / this.blockSize;
+    this.grid.nbHBlocks = this.height / this.blockSize;
+}
 
 Game.prototype.getBlock = function( posX, posY ) {
     return this.blocks[Math.round( posX + this.nbHBlocks * posY )];
